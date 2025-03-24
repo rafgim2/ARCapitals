@@ -508,7 +508,7 @@
         countdownCtx.textBaseline = "middle";
         countdownCtx.fillText(seconds < 10 ? "00:0" + seconds : "00:" + seconds, countdownCanvas.width / 2, countdownCanvas.height / 2);
         countdownTexture.needsUpdate = true;
-        if (remaining <= 10 && !beepPlayed) {
+        if (remaining <= -10 && !beepPlayed) {
           const beepSound = document.getElementById('beepSound');
           beepSound.currentTime = 0;
           beepSound.play().catch(e => console.error(e));
