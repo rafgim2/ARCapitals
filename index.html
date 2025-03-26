@@ -412,13 +412,13 @@
       // 5) Distribución en arco y orientación
       // ============================================================================
       function updateAnswerPositions() {
-        const radius = 0.8;   // distancia al centro del arco
+        const radius = 0.4;   // distancia al centro del arco
         const gapWorld = 0.05;// hueco “mundial” entre paneles
         const gapAngle = gapWorld / radius;
         const numPanels = answers.length;
 
         // Centro del arco, a 0.8 m delante de la posición inicial
-        const centerPos = new THREE.Vector3().copy(initialCameraPos).addScaledVector(initialCameraDir, 0.8);
+        const centerPos = new THREE.Vector3().copy(initialCameraPos).addScaledVector(initialCameraDir, 0.4);
 
         // Calculamos el ángulo que ocupa cada panel según su ancho
         let panelAngles = [];
