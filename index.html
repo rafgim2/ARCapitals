@@ -682,10 +682,9 @@
         updateAnswerPositions();
       }
 
-      // Función para crear una textura circular para las chispas
+      // --- Función para crear la textura circular para las chispas (igual que en AR MULTIMUSIC) ---
       function createCircleTexture() {
-        // Cambiamos el tamaño a 128 para que coincida con AR MULTIMUSIC
-        const size = 128;
+        const size = 128; // Usamos 128 para que coincida exactamente
         const canvas = document.createElement('canvas');
         canvas.width = size;
         canvas.height = size;
@@ -702,10 +701,10 @@
         return texture;
       }
 
-      // Creamos la textura circular para las chispas
+      // Se crea y almacena en window.sparkTexture para reutilizarla, como en AR MULTIMUSIC
       const sparkTexture = createCircleTexture();
 
-      // Función para crear efecto de chispas con puntos redondos
+      // --- Función para crear el efecto de chispas (copia exacta de AR MULTIMUSIC) ---
       function createSparksEffect(position) {
         const count = 100;
         const positions = new Float32Array(count * 3);
@@ -722,10 +721,13 @@
         }
         const geometry = new THREE.BufferGeometry();
         geometry.setAttribute('position', new THREE.BufferAttribute(positions, 3));
+        if (!window.sparkTexture) {
+          window.sparkTexture = createCircleTexture();
+        }
         const material = new THREE.PointsMaterial({
           color: 0xffffff,
           size: 0.02,
-          map: sparkTexture,
+          map: window.sparkTexture,
           transparent: true,
           opacity: 1.0,
           depthWrite: false,
