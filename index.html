@@ -287,7 +287,7 @@
       // Factor de resolución
       const resolutionFactor = 4;
 
-      // --- Función para dibujar un rectángulo redondeado sin sombras indeseadas ---
+      // Función para dibujar un rectángulo redondeado sin sombras
       function drawRoundedRect(ctx, x, y, width, height, radius) {
         ctx.beginPath();
         ctx.moveTo(x + radius, y);
@@ -300,33 +300,8 @@
         ctx.lineTo(x, y + radius);
         ctx.quadraticCurveTo(x, y, x + radius, y);
         ctx.closePath();
-        // Utilizamos el clip para pintar solo dentro de la forma y evitar bordes semitransparentes
-        ctx.save();
-        ctx.clip();
-        ctx.fillRect(x, y, width, height);
-        ctx.restore();
-      }
-
-      // --- Función para crear una textura circular para las chispas ---
-      function createCircleTexture() {
-        const size = 64;
-        const canvas = document.createElement('canvas');
-        canvas.width = size;
-        canvas.height = size;
-        const ctx = canvas.getContext('2d');
-        ctx.clearRect(0, 0, size, size);
-        ctx.fillStyle = 'white';
-        ctx.beginPath();
-        ctx.arc(size / 2, size / 2, size / 2, 0, Math.PI * 2);
-        ctx.closePath();
         ctx.fill();
-        const texture = new THREE.CanvasTexture(canvas);
-        texture.minFilter = THREE.LinearFilter;
-        texture.magFilter = THREE.LinearFilter;
-        return texture;
       }
-      // Creamos la textura circular una sola vez para reutilizarla en las chispas.
-      const circleTexture = createCircleTexture();
 
       // Función para actualizar el panel de pregunta (dinámico)
       function updateQuestionPanel() {
@@ -346,7 +321,6 @@
         const ctx = canvas.getContext('2d');
         ctx.font = 'Bold ' + fontSize + 'px Arial';
         ctx.fillStyle = "#007BFF";
-        // Dibuja el rectángulo redondeado sin sombras extra
         drawRoundedRect(ctx, 0, 0, canvas.width, canvas.height, 20 * resolutionFactor);
         ctx.fillStyle = "#FFFFFF";
         ctx.textAlign = 'center';
@@ -489,7 +463,7 @@
             '</select>' +
           '</div>';
 
-        const arButton = ARButton.createButton(renderer, { requiredFeatures: /Mobi|Android/i.test(navigator.userAgent) ? ['hit-test'] : ['hit-test', 'hand-tracking'] });
+        const arButton = ARButton.createButton(renderer, { requiredFeatures: ['hit-test'] });
         if (arButton.parentNode) { arButton.parentNode.removeChild(arButton); }
         arButton.style.position = 'absolute';
         arButton.style.top = '450px';
@@ -708,7 +682,29 @@
         updateAnswerPositions();
       }
 
-      // Efecto de chispas con puntos redondos
+      // Función para crear una textura circular para las chispas (igual que en AR MULTIMUSIC)
+      function createCircleTexture() {
+        const size = 64;
+        const canvas = document.createElement('canvas');
+        canvas.width = size;
+        canvas.height = size;
+        const ctx = canvas.getContext('2d');
+        ctx.clearRect(0, 0, size, size);
+        ctx.fillStyle = 'white';
+        ctx.beginPath();
+        ctx.arc(size / 2, size / 2, size / 2, 0, Math.PI * 2);
+        ctx.closePath();
+        ctx.fill();
+        const texture = new THREE.CanvasTexture(canvas);
+        texture.minFilter = THREE.LinearFilter;
+        texture.magFilter = THREE.LinearFilter;
+        return texture;
+      }
+
+      // Creamos la textura circular para las chispas
+      const sparkTexture = createCircleTexture();
+
+      // Función para crear efecto de chispas con puntos redondos
       function createSparksEffect(position) {
         const count = 100;
         const positions = new Float32Array(count * 3);
@@ -725,12 +721,13 @@
         }
         const geometry = new THREE.BufferGeometry();
         geometry.setAttribute('position', new THREE.BufferAttribute(positions, 3));
-        const material = new THREE.PointsMaterial({ 
-          map: circleTexture, 
-          size: 0.02, 
-          transparent: true, 
+        const material = new THREE.PointsMaterial({
+          color: 0xffffff,
+          size: 0.02,
+          map: sparkTexture,
+          transparent: true,
           opacity: 1.0,
-          alphaTest: 0.5
+          depthWrite: false,
         });
         const points = new THREE.Points(geometry, material);
         scene.add(points);
