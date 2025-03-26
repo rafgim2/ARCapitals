@@ -287,7 +287,7 @@
       // Factor de resolución
       const resolutionFactor = 4;
 
-      // Función para dibujar un rectángulo redondeado
+      // --- Función para dibujar un rectángulo redondeado sin sombras indeseadas ---
       function drawRoundedRect(ctx, x, y, width, height, radius) {
         ctx.beginPath();
         ctx.moveTo(x + radius, y);
@@ -300,19 +300,43 @@
         ctx.lineTo(x, y + radius);
         ctx.quadraticCurveTo(x, y, x + radius, y);
         ctx.closePath();
-        ctx.fill();
+        // Utilizamos el clip para pintar solo dentro de la forma y evitar bordes semitransparentes
+        ctx.save();
+        ctx.clip();
+        ctx.fillRect(x, y, width, height);
+        ctx.restore();
       }
+
+      // --- Función para crear una textura circular para las chispas ---
+      function createCircleTexture() {
+        const size = 64;
+        const canvas = document.createElement('canvas');
+        canvas.width = size;
+        canvas.height = size;
+        const ctx = canvas.getContext('2d');
+        ctx.clearRect(0, 0, size, size);
+        ctx.fillStyle = 'white';
+        ctx.beginPath();
+        ctx.arc(size / 2, size / 2, size / 2, 0, Math.PI * 2);
+        ctx.closePath();
+        ctx.fill();
+        const texture = new THREE.CanvasTexture(canvas);
+        texture.minFilter = THREE.LinearFilter;
+        texture.magFilter = THREE.LinearFilter;
+        return texture;
+      }
+      // Creamos la textura circular una sola vez para reutilizarla en las chispas.
+      const circleTexture = createCircleTexture();
 
       // Función para actualizar el panel de pregunta (dinámico)
       function updateQuestionPanel() {
         const text = questionText;
-        // Canvas temporal para medir el texto
         const tmpCanvas = document.createElement('canvas');
         const tmpCtx = tmpCanvas.getContext('2d');
         const fontSize = 48 * resolutionFactor;
         tmpCtx.font = 'Bold ' + fontSize + 'px Arial';
         const metrics = tmpCtx.measureText(text);
-        const padding = 40 * resolutionFactor; // margen interno
+        const padding = 40 * resolutionFactor;
         const canvasWidth = metrics.width + padding;
         const canvasHeight = 128 * resolutionFactor;
 
@@ -322,6 +346,7 @@
         const ctx = canvas.getContext('2d');
         ctx.font = 'Bold ' + fontSize + 'px Arial';
         ctx.fillStyle = "#007BFF";
+        // Dibuja el rectángulo redondeado sin sombras extra
         drawRoundedRect(ctx, 0, 0, canvas.width, canvas.height, 20 * resolutionFactor);
         ctx.fillStyle = "#FFFFFF";
         ctx.textAlign = 'center';
@@ -331,7 +356,6 @@
         texture.minFilter = THREE.LinearFilter;
         texture.magFilter = THREE.LinearFilter;
         
-        // Escala basada en el tamaño de referencia (0.6 x 0.15 para 512x128)
         const scaleX = 0.6 / (512 * resolutionFactor);
         const scaleY = 0.15 / (128 * resolutionFactor);
         const newWidth = canvas.width * scaleX;
@@ -354,7 +378,6 @@
       // Función para actualizar el panel de respuesta (dinámico)
       function updateAnswerPanel(mesh, value) {
         const text = value;
-        // Canvas temporal para medir el texto
         const tmpCanvas = document.createElement('canvas');
         const tmpCtx = tmpCanvas.getContext('2d');
         const fontSize = 75 * resolutionFactor;
@@ -379,7 +402,6 @@
         texture.minFilter = THREE.LinearFilter;
         texture.magFilter = THREE.LinearFilter;
         
-        // Escala basada en 256x256 => 0.15 x 0.15
         const scaleFactor = 0.15 / (256 * resolutionFactor);
         const newWidth = canvas.width * scaleFactor;
         const newHeight = canvas.height * scaleFactor;
@@ -592,8 +614,8 @@
               ctx.clearRect(0, 0, canvas.width, canvas.height);
               ctx.fillStyle = "#007BFF";
               drawRoundedRect(ctx, 0, 0, canvas.width, canvas.height, 20 * resolutionFactor);
-              ctx.font = 'Bold ' + (75 * resolutionFactor) + 'px Arial';
               ctx.fillStyle = "#FFFFFF";
+              ctx.font = 'Bold ' + (75 * resolutionFactor) + 'px Arial';
               ctx.textAlign = 'center';
               ctx.textBaseline = 'middle';
 
@@ -610,7 +632,7 @@
               const texture = new THREE.CanvasTexture(canvas);
               texture.minFilter = THREE.LinearFilter;
               texture.magFilter = THREE.LinearFilter;
-              const material = new THREE.MeshBasicMaterial({ map: texture, side: THREE.DoubleSide });
+              const material = new THREE.MeshBasicMaterial({ map: texture, side: THREE.DoubleSide, transparent: true });
               const geometry = new THREE.PlaneGeometry(0.15, 0.15);
               const mesh = new THREE.Mesh(geometry, material);
               const angle = angleStart + (angleEnd - angleStart) * (i / (numAnswers - 1));
@@ -636,8 +658,8 @@
               ctx.clearRect(0, 0, canvas.width, canvas.height);
               ctx.fillStyle = "#007BFF";
               drawRoundedRect(ctx, 0, 0, canvas.width, canvas.height, 20 * resolutionFactor);
-              ctx.font = 'Bold ' + (75 * resolutionFactor) + 'px Arial';
               ctx.fillStyle = "#FFFFFF";
+              ctx.font = 'Bold ' + (75 * resolutionFactor) + 'px Arial';
               ctx.textAlign = 'center';
               ctx.textBaseline = 'middle';
 
@@ -653,7 +675,7 @@
               const texture = new THREE.CanvasTexture(canvas);
               texture.minFilter = THREE.LinearFilter;
               texture.magFilter = THREE.LinearFilter;
-              const material = new THREE.MeshBasicMaterial({ map: texture, side: THREE.DoubleSide });
+              const material = new THREE.MeshBasicMaterial({ map: texture, side: THREE.DoubleSide, transparent: true });
               const geometry = new THREE.PlaneGeometry(0.15, 0.15);
               const mesh = new THREE.Mesh(geometry, material);
               mesh.position.copy(originalAnswerTransforms[i].position);
@@ -686,7 +708,7 @@
         updateAnswerPositions();
       }
 
-      // Efecto de chispas
+      // Efecto de chispas con puntos redondos
       function createSparksEffect(position) {
         const count = 100;
         const positions = new Float32Array(count * 3);
@@ -703,8 +725,13 @@
         }
         const geometry = new THREE.BufferGeometry();
         geometry.setAttribute('position', new THREE.BufferAttribute(positions, 3));
-        // Cambiamos el color a blanco, activamos transparencia y establecemos opacidad inicial
-        const material = new THREE.PointsMaterial({ color: 0xffffff, size: 0.02, transparent: true, opacity: 1.0 });
+        const material = new THREE.PointsMaterial({ 
+          map: circleTexture, 
+          size: 0.02, 
+          transparent: true, 
+          opacity: 1.0,
+          alphaTest: 0.5
+        });
         const points = new THREE.Points(geometry, material);
         scene.add(points);
         sparksSystems.push({
