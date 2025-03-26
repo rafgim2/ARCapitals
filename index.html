@@ -682,7 +682,7 @@
         updateAnswerPositions();
       }
 
-      // Función para crear una textura circular para las chispas (idéntica a AR MULTIMUSIC)
+      // Función para crear una textura circular con degradado radial (igual que en AR MULTIMUSIC)
       function createCircleTexture() {
         const size = 128; // Tamaño de 128x128
         const canvas = document.createElement('canvas');
@@ -690,21 +690,22 @@
         canvas.height = size;
         const ctx = canvas.getContext('2d');
         ctx.clearRect(0, 0, size, size);
-        ctx.fillStyle = 'white';
-        ctx.beginPath();
-        ctx.arc(size / 2, size / 2, size / 2, 0, Math.PI * 2);
-        ctx.closePath();
-        ctx.fill();
+        // Crear un degradado radial: centro opaco, borde transparente
+        const gradient = ctx.createRadialGradient(size/2, size/2, 0, size/2, size/2, size/2);
+        gradient.addColorStop(0, 'rgba(255, 255, 255, 1)');
+        gradient.addColorStop(1, 'rgba(255, 255, 255, 0)');
+        ctx.fillStyle = gradient;
+        ctx.fillRect(0, 0, size, size);
         const texture = new THREE.CanvasTexture(canvas);
         texture.minFilter = THREE.LinearFilter;
         texture.magFilter = THREE.LinearFilter;
         return texture;
       }
 
-      // Se crea la textura circular y se almacena en window.sparkTexture
+      // Se crea la textura circular y se almacena en window.sparkTexture para reutilizarla
       const sparkTexture = createCircleTexture();
 
-      // Función para crear el efecto de chispas (modificado para usar blending aditivo y alphaTest)
+      // Función para crear el efecto de chispas con el blending igual que en AR MULTIMUSIC
       function createSparksEffect(position) {
         const count = 100;
         const positions = new Float32Array(count * 3);
