@@ -682,9 +682,10 @@
         updateAnswerPositions();
       }
 
-      // Función para crear una textura circular para las chispas (igual que en AR MULTIMUSIC)
+      // Función para crear una textura circular para las chispas
       function createCircleTexture() {
-        const size = 64;
+        // Cambiamos el tamaño a 128 para que coincida con AR MULTIMUSIC
+        const size = 128;
         const canvas = document.createElement('canvas');
         canvas.width = size;
         canvas.height = size;
