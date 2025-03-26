@@ -61,6 +61,8 @@
     <audio id="successSound" src="https://raw.githubusercontent.com/rafgim2/ARCapitals/main/acierto.wav" preload="auto"></audio>
     <audio id="errorSound" src="https://raw.githubusercontent.com/rafgim2/ARCapitals/main/error.wav" preload="auto"></audio>
     <audio id="timerSound" src="https://raw.githubusercontent.com/rafgim2/ARCapitals/main/timer7.mp3" preload="auto"></audio>
+    <!-- Un beep opcional, si quieres sonar justo al acabar el tiempo -->
+    <audio id="beepSound" src="https://raw.githubusercontent.com/rafgim2/ARCapitals/main/error.wav" preload="auto"></audio>
 
     <script type="module">
       import * as THREE from 'https://cdn.jsdelivr.net/npm/three@0.138.0/build/three.module.js';
@@ -276,6 +278,8 @@
 
       // Transformaciones originales para paneles de respuestas
       let originalAnswerTransforms = null;
+      // Bandera para posicionar respuestas solo la primera vez
+      let alreadyPositioned = false;
 
       // Control del beep
       let beepPlayed = false;
@@ -388,7 +392,7 @@
         mesh.userData.answer = value;
       }
 
-      // Función para actualizar las posiciones de los paneles de respuesta
+      // Función para actualizar las posiciones de los paneles de respuesta (solo 1ª vez)
       function updateAnswerPositions() {
         const radius = 0.8;
         const gapWorld = 0.05;
@@ -420,7 +424,8 @@
           let x = radius * Math.sin(angle);
           let z = -radius * Math.cos(angle);
           mesh.position.set(x, mesh.position.y, z);
-          
+
+          // Miran hacia la cámara solo la primera vez
           let cameraWorldPos = new THREE.Vector3();
           camera.getWorldPosition(cameraWorldPos);
           let lookAtPos = new THREE.Vector3(cameraWorldPos.x, mesh.position.y, cameraWorldPos.z);
@@ -463,7 +468,8 @@
             '</select>' +
           '</div>';
 
-        const arButton = ARButton.createButton(renderer, { requiredFeatures: ['hit-test'] });
+        // Se añade requiredFeatures: ['hit-test','hand-tracking']
+        const arButton = ARButton.createButton(renderer, { requiredFeatures: ['hit-test','hand-tracking'] });
         if (arButton.parentNode) { arButton.parentNode.removeChild(arButton); }
         arButton.style.position = 'absolute';
         arButton.style.top = '450px';
@@ -506,6 +512,7 @@
         const geometry = new THREE.PlaneGeometry(0.6, 0.3);
         const material = new THREE.MeshBasicMaterial({ map: countdownTexture, transparent: true });
         countdownMesh = new THREE.Mesh(geometry, material);
+        // A la misma distancia en Z donde están el resto, si lo deseas
         countdownMesh.position.set(0, 0.50, -0.82);
         scene.add(countdownMesh);
       }
@@ -522,7 +529,9 @@
         const geometry = new THREE.PlaneGeometry(0.6, 0.3);
         const material = new THREE.MeshBasicMaterial({ map: scoreTexture, transparent: true });
         scoreMesh = new THREE.Mesh(geometry, material);
-        scoreMesh.position.set(0, -0.2, -0.8);
+
+        // Se colocan los aciertos/fallos a -0.82 en Z, como lo pediste
+        scoreMesh.position.set(0, -0.2, -0.82);
         scene.add(scoreMesh);
       }
 
@@ -565,13 +574,14 @@
         questionText = `¿Cuál es la capital de ${selectedCountry.country}?`;
         if (questionMesh) { scene.remove(questionMesh); questionMesh = null; }
         updateQuestionPanel();
-        updateAnswerObjects();
+        updateAnswerObjects();  // Actualiza el texto, NO reorienta si ya se orientó una vez
         beepPlayed = false;
       }
 
       // Función para crear y actualizar los paneles de respuestas
       function createAnswerObjects(numAnswers, initialCreation) {
         if (initialCreation) {
+          // Primera vez
           const minArc = 1.39626;
           const maxArc = Math.PI;
           let arcAngle = numAnswers <= 4 ? minArc : (numAnswers >= 10 ? maxArc : minArc + ((numAnswers - 4) / (10 - 4)) * (maxArc - minArc));
@@ -593,16 +603,9 @@
               ctx.textAlign = 'center';
               ctx.textBaseline = 'middle';
 
-              const wrongAnswers = new Set();
-              while (wrongAnswers.size < (numAnswers - 1)) {
-                const randomIndex = Math.floor(Math.random() * countries.length);
-                const candidateCapital = countries[randomIndex].capital;
-                if(candidateCapital !== correctAnswer) wrongAnswers.add(candidateCapital);
-              }
-              const answersArray = [correctAnswer, ...wrongAnswers];
-              answersArray.sort(() => Math.random() - 0.5);
-              
-              ctx.fillText(answersArray[i], canvas.width / 2, canvas.height / 2);
+              // Solo dibuja algo inicial, luego se actualizará.
+              ctx.fillText("...", canvas.width / 2, canvas.height / 2);
+
               const texture = new THREE.CanvasTexture(canvas);
               texture.minFilter = THREE.LinearFilter;
               texture.magFilter = THREE.LinearFilter;
@@ -613,73 +616,48 @@
               const x = radius * Math.sin(angle);
               const z = -radius * Math.cos(angle);
               mesh.position.set(x, 0, z);
-              const cameraWorldPos = new THREE.Vector3();
-              camera.getWorldPosition(cameraWorldPos);
-              const lookAtPos = new THREE.Vector3(cameraWorldPos.x, mesh.position.y, cameraWorldPos.z);
-              mesh.lookAt(lookAtPos);
-              updateAnswerPanel(mesh, answersArray[i]);
-              mesh.userData.answer = answersArray[i];
-              answers.push(mesh);
-              scene.add(mesh);
-              originalAnswerTransforms.push({ position: mesh.position.clone(), rotation: mesh.rotation.clone() });
-            }
-          } else {
-            for (let i = 0; i < numAnswers; i++) {
-              const canvas = document.createElement('canvas');
-              canvas.width = 256 * resolutionFactor;
-              canvas.height = 256 * resolutionFactor;
-              const ctx = canvas.getContext('2d');
-              ctx.clearRect(0, 0, canvas.width, canvas.height);
-              ctx.fillStyle = "#007BFF";
-              drawRoundedRect(ctx, 0, 0, canvas.width, canvas.height, 20 * resolutionFactor);
-              ctx.fillStyle = "#FFFFFF";
-              ctx.font = 'Bold ' + (75 * resolutionFactor) + 'px Arial';
-              ctx.textAlign = 'center';
-              ctx.textBaseline = 'middle';
 
-              const wrongAnswers = new Set();
-              while (wrongAnswers.size < (numAnswers - 1)) {
-                const randomIndex = Math.floor(Math.random() * countries.length);
-                const candidateCapital = countries[randomIndex].capital;
-                if(candidateCapital !== correctAnswer) wrongAnswers.add(candidateCapital);
-              }
-              const answersArray = [correctAnswer, ...wrongAnswers];
-              answersArray.sort(() => Math.random() - 0.5);
-              ctx.fillText(answersArray[i], canvas.width / 2, canvas.height / 2);
-              const texture = new THREE.CanvasTexture(canvas);
-              texture.minFilter = THREE.LinearFilter;
-              texture.magFilter = THREE.LinearFilter;
-              const material = new THREE.MeshBasicMaterial({ map: texture, side: THREE.DoubleSide, transparent: true });
-              const geometry = new THREE.PlaneGeometry(0.15, 0.15);
-              const mesh = new THREE.Mesh(geometry, material);
-              mesh.position.copy(originalAnswerTransforms[i].position);
-              mesh.rotation.copy(originalAnswerTransforms[i].rotation);
-              updateAnswerPanel(mesh, answersArray[i]);
-              mesh.userData.answer = answersArray[i];
+              // Orientación solo en la primera creación
+              let cameraWorldPos = new THREE.Vector3();
+              camera.getWorldPosition(cameraWorldPos);
+              let lookAtPos = new THREE.Vector3(cameraWorldPos.x, mesh.position.y, cameraWorldPos.z);
+              mesh.lookAt(lookAtPos);
+
+              // Almacena transformaciones originales
+              originalAnswerTransforms.push({ position: mesh.position.clone(), rotation: mesh.rotation.clone() });
+
               answers.push(mesh);
               scene.add(mesh);
             }
           }
         } else {
-          const numAnswersExisting = selectedNumAnswers;
-          const wrongAnswers = new Set();
-          while (wrongAnswers.size < (numAnswersExisting - 1)) {
-            const randomIndex = Math.floor(Math.random() * countries.length);
-            const candidateCapital = countries[randomIndex].capital;
-            if(candidateCapital !== correctAnswer) wrongAnswers.add(candidateCapital);
-          }
-          const answersArray = [correctAnswer, ...wrongAnswers];
-          answersArray.sort(() => Math.random() - 0.5);
-          for (let i = 0; i < numAnswersExisting; i++) {
-            updateAnswerPanel(answers[i], answersArray[i]);
-          }
+          // No hacer nada especial aquí, las mallas ya existen
         }
-        updateAnswerPositions();
       }
 
       function updateAnswerObjects() {
-        createAnswerObjects(selectedNumAnswers, false);
-        updateAnswerPositions();
+        // Reutiliza las mallas existentes y solo actualiza su texto
+        const numAnswersExisting = selectedNumAnswers;
+        // Generamos (numAnswersExisting-1) respuestas falsas y 1 correcta
+        const wrongAnswers = new Set();
+        while (wrongAnswers.size < (numAnswersExisting - 1)) {
+          const randomIndex = Math.floor(Math.random() * countries.length);
+          const candidateCapital = countries[randomIndex].capital;
+          if(candidateCapital !== correctAnswer) wrongAnswers.add(candidateCapital);
+        }
+        const answersArray = [correctAnswer, ...wrongAnswers];
+        answersArray.sort(() => Math.random() - 0.5);
+
+        // Actualizamos solo el panel (mesh) y su texto, sin reorientar
+        for (let i = 0; i < numAnswersExisting; i++) {
+          updateAnswerPanel(answers[i], answersArray[i]);
+        }
+
+        // Solo la primera vez orientamos
+        if(!alreadyPositioned) {
+          updateAnswerPositions();
+          alreadyPositioned = true; 
+        }
       }
 
       // Función para crear una textura circular con degradado radial (igual que en AR MULTIMUSIC)
@@ -705,7 +683,7 @@
       // Se crea la textura circular y se almacena en window.sparkTexture para reutilizarla
       const sparkTexture = createCircleTexture();
 
-      // Función para crear el efecto de chispas con el blending igual que en AR MULTIMUSIC
+      // Función para crear el efecto de chispas con el blending
       function createSparksEffect(position) {
         const count = 100;
         const positions = new Float32Array(count * 3);
@@ -727,7 +705,7 @@
         }
         const material = new THREE.PointsMaterial({
           color: 0xffffff,
-          size: 0.02, // Ajustado a 0.01 para igualar AR MULTIMUSIC
+          size: 0.02,
           map: window.sparkTexture,
           transparent: true,
           opacity: 1.0,
@@ -750,8 +728,9 @@
         renderer.setAnimationLoop(render);
       }
 
-      function render(timestamp, xrFrame) {
+      function render() {
         renderer.render(scene, camera);
+
         if (gameReady && !countdownStarted) {
           startCountdown();
           const timerSound = document.getElementById('timerSound');
@@ -759,7 +738,9 @@
           timerSound.play().catch(e => console.error(e));
           countdownStarted = true;
         }
+
         const currentTime = performance.now();
+        // Actualiza partículas
         for (let i = sparksSystems.length - 1; i >= 0; i--) {
           const system = sparksSystems[i];
           const dt = (currentTime - system.lastUpdate) / 1000;
@@ -782,6 +763,7 @@
             sparksSystems.splice(i, 1);
           }
         }
+
         if (!gameOver) {
           const remaining = updateCountdown();
           updateScoreDisplay();
@@ -789,30 +771,38 @@
             endGame();
           }
         }
+
+        // Detección de colisiones con la mano (o cámara si no hay tracking)
         const session = renderer.xr.getSession();
         let interactionPoints = [];
-        if (session && xrFrame) {
-          for (const inputSource of session.inputSources) {
-            if (inputSource.hand) {
-              const indexTip = inputSource.hand.get('index-finger-tip');
-              if (indexTip) {
-                const jointPose = xrFrame.getJointPose(indexTip, renderer.xr.getReferenceSpace());
-                if (jointPose) {
-                  interactionPoints.push(new THREE.Vector3(
-                    jointPose.transform.position.x,
-                    jointPose.transform.position.y,
-                    jointPose.transform.position.z
-                  ));
+        if (session) {
+          const frame = renderer.xr.getFrame();
+          if (frame) {
+            for (const inputSource of session.inputSources) {
+              // Uso de la mano si está disponible
+              if (inputSource.hand) {
+                const indexTip = inputSource.hand.get('index-finger-tip');
+                if (indexTip) {
+                  const jointPose = frame.getJointPose(indexTip, renderer.xr.getReferenceSpace());
+                  if (jointPose) {
+                    interactionPoints.push(new THREE.Vector3(
+                      jointPose.transform.position.x,
+                      jointPose.transform.position.y,
+                      jointPose.transform.position.z
+                    ));
+                  }
                 }
               }
             }
           }
         }
+        // Si no hay tracking de mano, tomamos la posición de la cámara
         if (interactionPoints.length === 0) {
           let cameraPos = new THREE.Vector3();
           camera.getWorldPosition(cameraPos);
           interactionPoints.push(cameraPos);
         }
+
         if (!gameOver) {
           for (let panel of answers) {
             const panelPos = new THREE.Vector3();
@@ -853,6 +843,7 @@
             }
           }
         } else {
+          // Ya no hay preguntas, solo el "Reiniciar"
           if (restartButtonMesh) {
             const buttonPos = new THREE.Vector3();
             restartButtonMesh.getWorldPosition(buttonPos);
@@ -941,17 +932,22 @@
         gameOver = false;
         answers.forEach(panel => scene.remove(panel));
         answers = [];
+        originalAnswerTransforms = null;
+        alreadyPositioned = false;
+
         createAnswerObjects(selectedNumAnswers, true);
         generateQuestion();
         countdownStarted = false;
         gameReady = true;
         createScoreDisplay();
+
         const timerSound = document.getElementById('timerSound');
         timerSound.currentTime = 0;
         timerSound.loop = false;
         timerSound.play().catch(e => console.error(e));
       }
 
+      // Para desbloquear el audio en móviles
       window.addEventListener('touchstart', function unlockAudio() {
         const successEl = document.getElementById('successSound');
         const errorEl = document.getElementById('errorSound');
@@ -963,7 +959,9 @@
         });
       }, { once: true });
 
+      // Detección de toques en pantalla (por si no hay manos)
       window.addEventListener('touchstart', function(event) {
+        // Solo en dispositivos móviles
         if (!/Mobi|Android/i.test(navigator.userAgent)) return;
         const touch = event.touches[0];
         const x = (touch.clientX / window.innerWidth) * 2 - 1;
@@ -971,12 +969,14 @@
         const mouseVector = new THREE.Vector2(x, y);
         const raycaster = new THREE.Raycaster();
         raycaster.setFromCamera(mouseVector, camera);
+
         let objectsToIntersect = [];
         if (!gameOver) {
           objectsToIntersect = answers;
         } else {
           if (restartButtonMesh) { objectsToIntersect = [restartButtonMesh]; }
         }
+
         const intersects = raycaster.intersectObjects(objectsToIntersect);
         if (intersects.length > 0 && !hasCollided) {
           const panel = intersects[0].object;
@@ -1010,6 +1010,7 @@
               }, 500);
             }
           } else {
+            // En caso de que sea el botón reiniciar
             const successSound = document.getElementById('successSound');
             const successClone = successSound.cloneNode();
             successClone.play().catch(e => console.error(e));
