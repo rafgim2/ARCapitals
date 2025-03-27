@@ -319,7 +319,10 @@
         `;
 
         // ARButton con requiredFeatures (hand-tracking)
-        const arButton = ARButton.createButton(renderer, { requiredFeatures: ['hit-test','hand-tracking'] });
+        const arButton = ARButton.createButton(renderer, {
+  requiredFeatures: ['hit-test'],
+  optionalFeatures: ['hand-tracking']
+});
         arButton.style.position = 'absolute';
         arButton.style.bottom = '120px';
         arButton.style.left = 'calc(50% - 75px)';
