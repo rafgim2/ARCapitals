@@ -255,7 +255,6 @@
       let gameOver = false;
       let correctCount = 0;
       let wrongCount = 0;
-
       let questionText = "";
       let selectedNumAnswers = 4;
       let gameStartTime = 0;
@@ -272,8 +271,8 @@
       let countdownStarted = false;
 
       // Guardamos posición/dirección iniciales de la cámara
-      let initialCameraPos   = new THREE.Vector3();
-      let initialCameraDir   = new THREE.Vector3();
+      let initialCameraPos = new THREE.Vector3();
+      let initialCameraDir = new THREE.Vector3();
 
       // Sparks
       let sparkTexture = null;
@@ -320,9 +319,9 @@
 
         // ARButton con requiredFeatures (hand-tracking)
         const arButton = ARButton.createButton(renderer, {
-  requiredFeatures: ['hit-test'],
-  optionalFeatures: ['hand-tracking']
-});
+          requiredFeatures: ['hit-test'],
+          optionalFeatures: ['hand-tracking']
+        });
         arButton.style.position = 'absolute';
         arButton.style.bottom = '120px';
         arButton.style.left = 'calc(50% - 75px)';
@@ -416,11 +415,11 @@
       // ============================================================================
       function updateAnswerPositions() {
         const radius = 0.8;   // distancia al centro del arco
-        const gapWorld = 0.05;// hueco “mundial” entre paneles
+        const gapWorld = 0.05; // hueco “mundial” entre paneles
         const gapAngle = gapWorld / radius;
         const numPanels = answers.length;
 
-        // Centro del arco, a 0.8 m delante de la posición inicial
+        // Centro del arco, a partir de la posición inicial de la cámara
         const centerPos = new THREE.Vector3().copy(initialCameraPos).addScaledVector(initialCameraDir, 0);
 
         // Calculamos el ángulo que ocupa cada panel según su ancho
@@ -460,8 +459,9 @@
 
           const finalPos = new THREE.Vector3().copy(centerPos).add(offset);
           mesh.position.copy(finalPos);
-
-          // Miramos hacia la posición inicial del usuario
+          // Guardamos la posición Y base para el efecto de flotación
+          mesh.userData.baseY = finalPos.y;
+          // Orientamos el panel hacia la posición inicial de la cámara
           mesh.lookAt(initialCameraPos);
         });
       }
@@ -725,8 +725,16 @@
         renderer.setAnimationLoop(render);
       }
 
-      function render() {
+      // Aquí agregamos el efecto de flotación a cada panel de respuesta
+      function render(timestamp) {
         renderer.render(scene, camera);
+
+        // Efecto de flotación: cada panel oscila en Y en base a su posición original
+        answers.forEach((mesh, index) => {
+          if (mesh.userData.baseY !== undefined) {
+            mesh.position.y = mesh.userData.baseY + 0.02 * Math.sin(timestamp * 0.005 + index);
+          }
+        });
 
         if (gameReady && !countdownStarted) {
           startCountdown();
@@ -782,29 +790,29 @@
             for(const pt of interactionPoints) {
               const dist = panelPos.distanceTo(pt);
               if(dist < collisionThreshold && !hasCollided){
-                hasCollided=true;
+                hasCollided = true;
                 if(panel.userData.answer === correctAnswer){
                   correctCount++;
                   playSound('successSound');
                   createSparksEffect(panel.position);
-                  if(questionMesh) questionMesh.visible=false;
-                  answers.forEach(a=>a.visible=false);
-                  setTimeout(()=>{
+                  if(questionMesh) questionMesh.visible = false;
+                  answers.forEach(a => a.visible = false);
+                  setTimeout(() => {
                     if(!gameOver){
                       generateQuestion();
-                      if(questionMesh) questionMesh.visible=true;
-                      answers.forEach(a=>a.visible=true);
+                      if(questionMesh) questionMesh.visible = true;
+                      answers.forEach(a => a.visible = true);
                     }
-                    hasCollided=false;
-                  },1000);
+                    hasCollided = false;
+                  }, 1000);
                 } else {
                   wrongCount++;
                   playSound('errorSound');
-                  answers.forEach(a=>a.material.color.set(0xff0000));
-                  setTimeout(()=>{
-                    answers.forEach(a=>a.material.color.set(0xffffff));
-                    hasCollided=false;
-                  },500);
+                  answers.forEach(a => a.material.color.set(0xff0000));
+                  setTimeout(() => {
+                    answers.forEach(a => a.material.color.set(0xffffff));
+                    hasCollided = false;
+                  }, 500);
                 }
                 break;
               }
@@ -818,14 +826,14 @@
             for(const pt of interactionPoints){
               const dist = btnPos.distanceTo(pt);
               if(dist < collisionThreshold && !hasCollided){
-                hasCollided=true;
+                hasCollided = true;
                 playSound('successSound');
                 createSparksEffect(restartButtonMesh.position);
-                restartButtonMesh.visible=false;
-                setTimeout(()=>{
+                restartButtonMesh.visible = false;
+                setTimeout(() => {
                   restartGame();
-                  hasCollided=false;
-                },1000);
+                  hasCollided = false;
+                }, 1000);
                 break;
               }
             }
@@ -840,28 +848,28 @@
         if(questionMesh) scene.remove(questionMesh);
         if(countdownMesh) scene.remove(countdownMesh);
         if(scoreMesh) scene.remove(scoreMesh);
-        answers.forEach(a=>scene.remove(a));
+        answers.forEach(a => scene.remove(a));
 
         // Mensaje final
         const c = document.createElement('canvas');
-        c.width = 256*resolutionFactor;
-        c.height = 128*resolutionFactor;
+        c.width = 256 * resolutionFactor;
+        c.height = 128 * resolutionFactor;
         const ctx = c.getContext('2d');
-        ctx.fillStyle="#007BFF";
-        drawRoundedRect(ctx, 0, 0, c.width, c.height, 10*resolutionFactor);
-        ctx.fillStyle="#FFFFFF";
-        ctx.font = 'Bold '+(24*resolutionFactor)+'px Arial';
-        ctx.textAlign='center';
-        ctx.textBaseline='middle';
-        ctx.fillText("Fin del Juego", c.width/2, 30*resolutionFactor);
-        ctx.font = 'Bold '+(18*resolutionFactor)+'px Arial';
-        ctx.fillText(`Aciertos: ${correctCount}`, c.width/2, 65*resolutionFactor);
-        ctx.fillText(`Fallos: ${wrongCount}`, c.width/2, 100*resolutionFactor);
+        ctx.fillStyle = "#007BFF";
+        drawRoundedRect(ctx, 0, 0, c.width, c.height, 10 * resolutionFactor);
+        ctx.fillStyle = "#FFFFFF";
+        ctx.font = 'Bold ' + (24 * resolutionFactor) + 'px Arial';
+        ctx.textAlign = 'center';
+        ctx.textBaseline = 'middle';
+        ctx.fillText("Fin del Juego", c.width / 2, 30 * resolutionFactor);
+        ctx.font = 'Bold ' + (18 * resolutionFactor) + 'px Arial';
+        ctx.fillText(`Aciertos: ${correctCount}`, c.width / 2, 65 * resolutionFactor);
+        ctx.fillText(`Fallos: ${wrongCount}`, c.width / 2, 100 * resolutionFactor);
 
         const tex = new THREE.CanvasTexture(c);
         tex.minFilter = THREE.LinearFilter;
-        const geo = new THREE.PlaneGeometry(0.5,0.25);
-        const mat = new THREE.MeshBasicMaterial({ map:tex, transparent:true });
+        const geo = new THREE.PlaneGeometry(0.5, 0.25);
+        const mat = new THREE.MeshBasicMaterial({ map: tex, transparent: true });
         finalMessageMesh = new THREE.Mesh(geo, mat);
         finalMessageMesh.position.set(0, 0, -0.8);
         scene.add(finalMessageMesh);
@@ -881,19 +889,19 @@
         wrongCount = 0;
         gameStartTime = performance.now();
         gameOver = false;
-        answers.forEach(a=>scene.remove(a));
+        answers.forEach(a => scene.remove(a));
         answers = [];
 
         createAnswerObjects(selectedNumAnswers);
         generateQuestion();
-        countdownStarted=false;
-        gameReady=true;
+        countdownStarted = false;
+        gameReady = true;
         createScoreDisplay();
 
         const timerSound = document.getElementById('timerSound');
-        timerSound.currentTime=0;
-        timerSound.loop=false;
-        timerSound.play().catch(e=>{});
+        timerSound.currentTime = 0;
+        timerSound.loop = false;
+        timerSound.play().catch(e => {});
       }
 
       // ============================================================================
@@ -904,40 +912,40 @@
         c.width = 128 * resolutionFactor;
         c.height = 64 * resolutionFactor;
         const ctx = c.getContext('2d');
-        ctx.fillStyle="#007BFF";
-        drawRoundedRect(ctx, 0, 0, c.width, c.height, 10*resolutionFactor);
-        ctx.fillStyle="#FFFFFF";
-        ctx.font='Bold '+(18*resolutionFactor)+'px Arial';
-        ctx.textAlign='center';
-        ctx.textBaseline='middle';
-        ctx.fillText(text, c.width/2, c.height/2);
-        const tex=new THREE.CanvasTexture(c);
+        ctx.fillStyle = "#007BFF";
+        drawRoundedRect(ctx, 0, 0, c.width, c.height, 10 * resolutionFactor);
+        ctx.fillStyle = "#FFFFFF";
+        ctx.font = 'Bold ' + (18 * resolutionFactor) + 'px Arial';
+        ctx.textAlign = 'center';
+        ctx.textBaseline = 'middle';
+        ctx.fillText(text, c.width / 2, c.height / 2);
+        const tex = new THREE.CanvasTexture(c);
         tex.minFilter = THREE.LinearFilter;
         const g = new THREE.PlaneGeometry(0.2, 0.1);
         const m = new THREE.MeshBasicMaterial({ map: tex, transparent: true });
-        return new THREE.Mesh(g,m);
+        return new THREE.Mesh(g, m);
       }
 
-      function playSound(id){
+      function playSound(id) {
         const el = document.getElementById(id);
-        if(el){
+        if (el) {
           const clone = el.cloneNode();
-          clone.play().catch(e=>{});
+          clone.play().catch(e => {});
         }
       }
 
       // Dibujo de rectángulo redondeado
-      function drawRoundedRect(ctx, x, y, w, h, r){
+      function drawRoundedRect(ctx, x, y, w, h, r) {
         ctx.beginPath();
-        ctx.moveTo(x+r, y);
-        ctx.lineTo(x+w-r, y);
-        ctx.quadraticCurveTo(x+w, y, x+w, y+r);
-        ctx.lineTo(x+w, y+h-r);
-        ctx.quadraticCurveTo(x+w, y+h, x+w-r, y+h);
-        ctx.lineTo(x+r, y+h);
-        ctx.quadraticCurveTo(x, y+h, x, y+h-r);
-        ctx.lineTo(x, y+r);
-        ctx.quadraticCurveTo(x, y, x+r, y);
+        ctx.moveTo(x + r, y);
+        ctx.lineTo(x + w - r, y);
+        ctx.quadraticCurveTo(x + w, y, x + w, y + r);
+        ctx.lineTo(x + w, y + h - r);
+        ctx.quadraticCurveTo(x + w, y + h, x + w - r, y + h);
+        ctx.lineTo(x + r, y + h);
+        ctx.quadraticCurveTo(x, y + h, x, y + h - r);
+        ctx.lineTo(x, y + r);
+        ctx.quadraticCurveTo(x, y, x + r, y);
         ctx.closePath();
         ctx.fill();
       }
@@ -945,22 +953,22 @@
       // ============================================================================
       // 12) Desbloqueo de audio en móviles
       // ============================================================================
-      window.addEventListener('touchstart', function unlockAudio(){
+      window.addEventListener('touchstart', function unlockAudio() {
         const s1 = document.getElementById('successSound');
         const s2 = document.getElementById('errorSound');
-        [s1, s2].forEach(a=>{
-          a.play().then(()=>{
+        [s1, s2].forEach(a => {
+          a.play().then(() => {
             a.pause();
-            a.currentTime=0;
-          }).catch(e=>{});
+            a.currentTime = 0;
+          }).catch(e => {});
         });
-      }, { once:true });
+      }, { once: true });
 
       // ============================================================================
       // 13) Detección de toques en pantalla (fallback si no hay hand-tracking)
       // ============================================================================
-      window.addEventListener('touchstart', function(event){
-        if(!/Mobi|Android/i.test(navigator.userAgent)) return; 
+      window.addEventListener('touchstart', function(event) {
+        if (!/Mobi|Android/i.test(navigator.userAgent)) return;
         const t = event.touches[0];
         const x = (t.clientX / window.innerWidth) * 2 - 1;
         const y = - (t.clientY / window.innerHeight) * 2 + 1;
@@ -969,48 +977,48 @@
         raycaster.setFromCamera(mouseVector, camera);
 
         let objs = [];
-        if(!gameOver) {
+        if (!gameOver) {
           objs = answers;
         } else {
-          if(restartButtonMesh) objs = [restartButtonMesh];
+          if (restartButtonMesh) objs = [restartButtonMesh];
         }
 
         const intersects = raycaster.intersectObjects(objs);
-        if(intersects.length > 0 && !hasCollided){
+        if (intersects.length > 0 && !hasCollided) {
           const panel = intersects[0].object;
           hasCollided = true;
-          if(!gameOver){
-            if(panel.userData.answer === correctAnswer){
+          if (!gameOver) {
+            if (panel.userData.answer === correctAnswer) {
               correctCount++;
               playSound('successSound');
               createSparksEffect(panel.position);
-              if(questionMesh) questionMesh.visible=false;
-              answers.forEach(a=>a.visible=false);
-              setTimeout(()=>{
-                if(!gameOver){
+              if (questionMesh) questionMesh.visible = false;
+              answers.forEach(a => a.visible = false);
+              setTimeout(() => {
+                if (!gameOver) {
                   generateQuestion();
-                  if(questionMesh) questionMesh.visible=true;
-                  answers.forEach(a=>a.visible=true);
+                  if (questionMesh) questionMesh.visible = true;
+                  answers.forEach(a => a.visible = true);
                 }
-                hasCollided=false;
-              },1000);
+                hasCollided = false;
+              }, 1000);
             } else {
               wrongCount++;
               playSound('errorSound');
-              answers.forEach(a=>a.material.color.set(0xff0000));
-              setTimeout(()=>{
-                answers.forEach(a=>a.material.color.set(0xffffff));
-                hasCollided=false;
-              },500);
+              answers.forEach(a => a.material.color.set(0xff0000));
+              setTimeout(() => {
+                answers.forEach(a => a.material.color.set(0xffffff));
+                hasCollided = false;
+              }, 500);
             }
           } else {
             playSound('successSound');
             createSparksEffect(panel.position);
-            panel.visible=false;
-            setTimeout(()=>{
+            panel.visible = false;
+            setTimeout(() => {
               restartGame();
-              hasCollided=false;
-            },1000);
+              hasCollided = false;
+            }, 1000);
           }
         }
       }, false);
