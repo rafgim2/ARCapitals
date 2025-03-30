@@ -10,7 +10,7 @@
         font-family: sans-serif; 
         overflow-y: auto;
       }
-      /* Overlay del menú inicial (estilo idéntico al de multiplicaciones) */
+      /* Overlay inicial (igual que en multiplicaciones) */
       #overlay {
         position: absolute;
         top: 0;
@@ -93,7 +93,7 @@
     </style>
   </head>
   <body>
-    <!-- Audios para AR Capitals -->
+    <!-- Audios -->
     <audio id="successSound" src="https://raw.githubusercontent.com/rafgim2/ARCapitals/main/acierto.wav" preload="auto"></audio>
     <audio id="errorSound" src="https://raw.githubusercontent.com/rafgim2/ARCapitals/main/error.wav" preload="auto"></audio>
     <audio id="timerSound" src="https://raw.githubusercontent.com/rafgim2/ARCapitals/main/timer7.mp3" preload="auto"></audio>
@@ -138,7 +138,7 @@
       let wrongCount = 0;
       let questionText = "";
       let selectedNumAnswers = 4;
-      const gameDuration = 60;
+      const gameDuration = 60; // segundos
       const collisionThreshold = 0.2;
       const resolutionFactor = 4;
       
@@ -160,6 +160,7 @@
       let scrollUpButtonMesh = null;
       let scrollDownButtonMesh = null;
       
+      // En el código de multiplicaciones no se capturan manualmente la posición de la cámara
       let initialCameraPos = new THREE.Vector3();
       let initialCameraDir = new THREE.Vector3();
       
@@ -437,7 +438,7 @@
       
         window.addEventListener('resize', onWindowResize);
       
-        // Overlay inicial
+        // Overlay inicial (idéntico al código que funciona)
         const overlay = document.createElement('div');
         overlay.id = 'overlay';
         overlay.innerHTML = `
@@ -459,11 +460,11 @@
           <input type="text" id="playerName" placeholder="Ingresa tu nombre" style="padding:10px; font-size:16px; margin-bottom:20px;" maxlength="10">
         `;
       
-        // ARButton: se coloca exactamente igual que en AR Capitals original
-        const arButton = ARButton.createButton(renderer, {
-          requiredFeatures: ['hit-test'],
-          optionalFeatures: ['hand-tracking']
-        });
+        // Usamos el mismo método para determinar las características requeridas
+        const requiredFeatures = /Mobi|Android/i.test(navigator.userAgent)
+          ? ['hit-test']
+          : ['hit-test', 'hand-tracking'];
+        const arButton = ARButton.createButton(renderer, { requiredFeatures });
         arButton.style.position = 'absolute';
         arButton.style.bottom = '120px';
         arButton.style.left = 'calc(50% - 75px)';
@@ -482,15 +483,12 @@
         });
         updateLeaderboardPreview(4);
       
+        // En sessionstart, se siguen exactamente los pasos del código funcional (sin capturar manualmente la posición de cámara)
         renderer.xr.addEventListener('sessionstart', () => {
           selectedNumAnswers = parseInt(document.getElementById('numAnswers').value) || 4;
           playerName = document.getElementById('playerName').value || "Jugador";
       
-          // Capturamos la posición y dirección de la cámara
-          camera.getWorldPosition(initialCameraPos);
-          camera.getWorldDirection(initialCameraDir);
-          initialCameraDir.normalize();
-      
+          // En el código funcional no se captura la posición de la cámara
           createAnswerObjects(selectedNumAnswers, true);
           overlay.remove();
           generateQuestion();
@@ -556,7 +554,8 @@
         const gapWorld = 0.05;
         const gapAngle = gapWorld / radius;
         const numPanels = answers.length;
-        const centerPos = new THREE.Vector3().copy(initialCameraPos).addScaledVector(initialCameraDir, 0);
+        // En AR la cámara suele estar en el origen, así que usamos:
+        const centerPos = new THREE.Vector3(0, 0, 0);
         let panelAngles = [];
         answers.forEach(mesh => {
           let w = mesh.userData.panelWidth || mesh.geometry.parameters.width;
@@ -574,9 +573,10 @@
           currentAngle += (panelAngles[i-1] / 2) + gapAngle + (panelAngles[i] / 2);
           angles.push(currentAngle);
         }
+        // Usamos vectores fijos para el posicionamiento (como en el código funcional)
         const up = new THREE.Vector3(0,1,0);
-        const right = new THREE.Vector3().crossVectors(up, initialCameraDir).normalize().multiplyScalar(-1);
-        const forwardHorizontal = new THREE.Vector3(initialCameraDir.x, 0, initialCameraDir.z).normalize();
+        const right = new THREE.Vector3(1,0,0);
+        const forwardHorizontal = new THREE.Vector3(0,0,-1);
         answers.forEach((mesh, i) => {
           const angle = angles[i];
           const offset = new THREE.Vector3();
@@ -586,7 +586,8 @@
           const finalPos = new THREE.Vector3().copy(centerPos).add(offset);
           mesh.position.copy(finalPos);
           mesh.userData.baseY = finalPos.y;
-          mesh.lookAt(initialCameraPos);
+          // Hacemos que mire hacia el origen (la cámara en AR)
+          mesh.lookAt(centerPos);
         });
       }
       
@@ -1174,7 +1175,7 @@
         timerSound.play().catch(e => {});
       }
       
-      /***** 13) Eventos Touch para dispositivos móviles *****/
+      /***** 13) Eventos Touch para móviles *****/
       window.addEventListener('touchstart', function(event) {
         if (!/Mobi|Android/i.test(navigator.userAgent)) return;
         const t = event.touches[0];
@@ -1250,7 +1251,7 @@
         }
       }, false);
       
-      /***** 14) Desbloqueo de Audio en Móviles *****/
+      /***** 14) Desbloqueo de Audio en móviles *****/
       window.addEventListener('touchstart', function unlockAudio() {
         const s1 = document.getElementById('successSound');
         const s2 = document.getElementById('errorSound');
