@@ -109,7 +109,7 @@
         query, where, limit, updateDoc, doc
       } from "https://www.gstatic.com/firebasejs/9.22.0/firebase-firestore.js";
       
-      // Configuración de Firebase (la misma del código de multiplicaciones)
+      // Configuración de Firebase
       const firebaseConfig = {
         apiKey: "AIzaSyD5EAMg-0p54f8bPq8SVdZ_ePg5Xso3cmg",
         authDomain: "arm1-acbba.firebaseapp.com",
@@ -159,7 +159,6 @@
       let scoreboardStartIndex = 0;     
       const pageSize = 10;             
       let playerPosition = null;
-      // Elementos de la leaderboard AR
       let leaderboardMesh = null;
       let scrollUpButtonMesh = null;
       let scrollDownButtonMesh = null;
@@ -311,21 +310,22 @@
         });
         updateLeaderboardPreview(4);
       
-        // Al iniciar la sesión AR
+        // Al iniciar la sesión AR: primero se capturan los datos de la cámara y luego se crean los paneles
         renderer.xr.addEventListener('sessionstart', () => {
           selectedNumAnswers = parseInt(document.getElementById('numAnswers').value) || 4;
-          // Guardar el nombre del jugador
           playerName = document.getElementById('playerName').value || "Jugador";
+      
+          // Primero, capturamos la posición y dirección inicial de la cámara
+          camera.getWorldPosition(initialCameraPos);
+          camera.getWorldDirection(initialCameraDir);
+          initialCameraDir.normalize();
+      
+          // Ahora creamos los paneles de respuesta y se inicia el juego
           createAnswerObjects(selectedNumAnswers, true);
           overlay.remove();
           generateQuestion();
           createScoreDisplay();
           gameReady = true;
-      
-          // Guardar posición/dirección inicial de la cámara
-          camera.getWorldPosition(initialCameraPos);
-          camera.getWorldDirection(initialCameraDir);
-          initialCameraDir.normalize();
         });
       }
       
@@ -693,7 +693,6 @@
               if(dist < collisionThreshold && !hasCollided){
                 hasCollided = true;
                 if(panel.userData.answer === correctAnswer){
-                  // Medir tiempo de respuesta y almacenarlo
                   let responseTime = performance.now() - currentQuestionStartTime;
                   correctResponseTimes.push(responseTime);
                   correctCount++;
