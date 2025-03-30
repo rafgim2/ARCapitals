@@ -81,7 +81,6 @@
         padding: 4px;
         text-align: center;
       }
-      /* Imagen responsiva en AR (opcional) */
       img {
         border-radius: 20px;
         max-width: 15%;
@@ -120,7 +119,6 @@
         measurementId: "G-S78TM6PVRL"
       };
       
-      // Inicializar Firebase
       const appFirebase = initializeApp(firebaseConfig);
       const analytics = getAnalytics(appFirebase);
       const db = getFirestore(appFirebase);
@@ -140,7 +138,7 @@
       let wrongCount = 0;
       let questionText = "";
       let selectedNumAnswers = 4;
-      const gameDuration = 60; // segundos
+      const gameDuration = 60;
       const collisionThreshold = 0.2;
       const resolutionFactor = 4;
       
@@ -151,11 +149,9 @@
       let gameReady = false;
       let countdownStarted = false;
       
-      // Variables para medir tiempos de respuesta
       let currentQuestionStartTime = 0;
       let correctResponseTimes = [];
       
-      // Variables para leaderboard AR
       let leaderboardResults = [];      
       let scoreboardStartIndex = 0;     
       const pageSize = 10;             
@@ -164,11 +160,9 @@
       let scrollUpButtonMesh = null;
       let scrollDownButtonMesh = null;
       
-      // Guardar posición/dirección inicial de la cámara
       let initialCameraPos = new THREE.Vector3();
       let initialCameraDir = new THREE.Vector3();
       
-      // Sparks
       let sparkTexture = null;
       const sparksSystems = [];
       
@@ -208,7 +202,7 @@
         return new THREE.Mesh(geom, mat);
       }
       
-      /***** 5) Función para actualizar el leaderboard preview en el overlay *****/
+      /***** 5) Función para actualizar el leaderboard preview *****/
       async function updateLeaderboardPreview(numAnswers) {
         const collectionName = `capleaderboard_${numAnswers}`;
         try {
@@ -248,7 +242,7 @@
         }
       }
       
-      /***** 6) Datos de Países y Capitales (se declara antes de iniciar AR) *****/
+      /***** 6) Datos de Países y Capitales *****/
       const countries = [
         { country: "Afganistán", capital: "Kabul" },
         { country: "Albania", capital: "Tirana" },
@@ -443,7 +437,7 @@
       
         window.addEventListener('resize', onWindowResize);
       
-        // Overlay inicial (estilo del código de multiplicaciones)
+        // Overlay inicial
         const overlay = document.createElement('div');
         overlay.id = 'overlay';
         overlay.innerHTML = `
@@ -465,15 +459,14 @@
           <input type="text" id="playerName" placeholder="Ingresa tu nombre" style="padding:10px; font-size:16px; margin-bottom:20px;" maxlength="10">
         `;
       
-        // ARButton con hand-tracking opcional
+        // ARButton: se coloca exactamente igual que en AR Capitals original
         const arButton = ARButton.createButton(renderer, {
           requiredFeatures: ['hit-test'],
           optionalFeatures: ['hand-tracking']
         });
         arButton.style.position = 'absolute';
-        arButton.style.top = '600px';
-        arButton.style.left = '100%';
-        arButton.style.transform = 'translateX(0%)';
+        arButton.style.bottom = '120px';
+        arButton.style.left = 'calc(50% - 75px)';
         arButton.style.width = '150px';
         arButton.style.height = '50px';
         arButton.style.fontSize = '16px';
@@ -482,7 +475,6 @@
         overlay.appendChild(arButton);
         document.body.appendChild(overlay);
       
-        // Actualizar leaderboard preview al cambiar el número de respuestas
         const selectAnswers = document.getElementById('numAnswers');
         selectAnswers.addEventListener('change', () => {
           const num = parseInt(selectAnswers.value) || 4;
@@ -490,17 +482,15 @@
         });
         updateLeaderboardPreview(4);
       
-        // Al iniciar la sesión AR: primero se capturan los datos de la cámara y luego se crean los paneles
         renderer.xr.addEventListener('sessionstart', () => {
           selectedNumAnswers = parseInt(document.getElementById('numAnswers').value) || 4;
           playerName = document.getElementById('playerName').value || "Jugador";
       
-          // Capturamos la posición y dirección inicial de la cámara
+          // Capturamos la posición y dirección de la cámara
           camera.getWorldPosition(initialCameraPos);
           camera.getWorldDirection(initialCameraDir);
           initialCameraDir.normalize();
       
-          // Creamos los paneles de respuesta y se inicia el juego
           createAnswerObjects(selectedNumAnswers, true);
           overlay.remove();
           generateQuestion();
@@ -676,7 +666,6 @@
         mesh.userData.answer = value;
       }
       
-      /***** 9) Generar Pregunta *****/
       function generateQuestion() {
         const rnd = Math.floor(Math.random() * countries.length);
         const item = countries[rnd];
@@ -694,7 +683,6 @@
         createAnswerObjects(selectedNumAnswers, false);
       }
       
-      /***** 10) Efectos y Score *****/
       function createSparksEffect(pos) {
         if(!sparkTexture) sparkTexture = createSparkTexture();
         const count = 100;
@@ -809,7 +797,6 @@
         return remaining;
       }
       
-      /***** 11) Bucle Principal *****/
       function animate() {
         renderer.setAnimationLoop(render);
       }
@@ -838,7 +825,6 @@
           }
         }
       
-        // Detección de colisiones (3D) con mano/cámara
         const session = renderer.xr.getSession();
         let interactionPoints = [];
         if (session && xrFrame) {
@@ -959,7 +945,6 @@
         }
       }
       
-      /***** 12) Función para Finalizar el Juego y Subir Puntuaciones *****/
       async function endGame() {
         gameOver = true;
         if(questionMesh) scene.remove(questionMesh);
@@ -1068,11 +1053,11 @@
         scene.add(restartButtonMesh);
       
         scrollUpButtonMesh = createButton("▲", 0.1, 0.1);
-        scrollUpButtonMesh.position.set(-0.6, 0.5, -1.1);
+        scrollUpButtonMesh.position.set(-planeWidth*0.5 - 0.1, 0.5, -1.1);
         scene.add(scrollUpButtonMesh);
       
         scrollDownButtonMesh = createButton("▼", 0.1, 0.1);
-        scrollDownButtonMesh.position.set(-0.6, -0.4, -1.1);
+        scrollDownButtonMesh.position.set(-planeWidth*0.5 - 0.1, -0.5, -1.1);
         scene.add(scrollDownButtonMesh);
       }
       
@@ -1126,7 +1111,7 @@
           }
           ctx.fillText(String(realPos),  xPosPos,   yPos);
           ctx.fillText(data.name,        xPosName,  yPos);
-          ctx.fillText(String(data.score), xPosScore,yPos);
+          ctx.fillText(String(data.score), xPosScore, yPos);
       
           yPos += lineHeight;
         }
