@@ -6,7 +6,7 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no">
     <style>
       body { margin: 0; overflow: hidden; font-family: sans-serif; }
-      /* Overlay del menú inicial (se ha adaptado el estilo para incluir preview y nombre) */
+      /* Overlay del menú inicial (adaptado para incluir preview y nombre) */
       #overlay {
         position: absolute; 
         top: 0; left: 0; 
@@ -93,7 +93,7 @@
     <audio id="beepSound" src="https://raw.githubusercontent.com/rafgim2/ARCapitals/main/error.wav" preload="auto"></audio>
 
     <script type="module">
-      /***** Firebase y Firestore (adaptado desde el código de multiplicaciones) *****/
+      /***** Firebase y Firestore *****/
       import { initializeApp } from "https://www.gstatic.com/firebasejs/9.22.0/firebase-app.js";
       import { getAnalytics } from "https://www.gstatic.com/firebasejs/9.22.0/firebase-analytics.js";
       import { 
@@ -159,7 +159,7 @@
       import * as THREE from 'https://cdn.jsdelivr.net/npm/three@0.138.0/build/three.module.js';
       import { ARButton } from 'https://cdn.jsdelivr.net/npm/three@0.138.0/examples/jsm/webxr/ARButton.js';
 
-      // 1) Array completo de países y capitales
+      // 1) Array de países y capitales
       const countries = [
         { country: "Afganistán", capital: "Kabul" },
         { country: "Albania", capital: "Tirana" },
@@ -349,7 +349,7 @@
       let wrongCount = 0;
       let questionText = "";
       let selectedNumAnswers = 4;
-      const gameDuration = 60; // en segundos
+      const gameDuration = 60; // segundos
       const collisionThreshold = 0.2;
       const resolutionFactor = 4;
 
@@ -364,7 +364,7 @@
       let gameReady = false, countdownStarted = false;
       let playerName = "";
 
-      // Para efecto de flotación
+      // Para efecto de flotación, se guardan posición y dirección iniciales
       let initialCameraPos = new THREE.Vector3();
       let initialCameraDir = new THREE.Vector3();
 
@@ -374,7 +374,6 @@
 
       // ---------------------------------------------------------------------
       // Funciones auxiliares
-      // ---------------------------------------------------------------------
       function drawRoundedRect(ctx, x, y, w, h, r) {
         ctx.beginPath();
         ctx.moveTo(x + r, y);
@@ -391,7 +390,7 @@
       }
 
       // ---------------------------------------------------------------------
-      // Función para crear el panel de respuesta (canvas)
+      // Función para actualizar el panel de respuesta
       function updateAnswerPanel(mesh, value) {
         const tmpCanvas = document.createElement('canvas');
         tmpCanvas.width = 256 * resolutionFactor;
@@ -485,9 +484,8 @@
       }
 
       // ---------------------------------------------------------------------
-      // Funciones de creación y actualización de objetos de respuesta
+      // Funciones para crear y actualizar los objetos de respuesta
       function createAnswerObjects(numAnswers) {
-        // Se crean las mallas de respuesta (se distribuyen en arco)
         for (let i = 0; i < numAnswers; i++) {
           const canvas = document.createElement('canvas');
           canvas.width = 256 * resolutionFactor;
@@ -513,7 +511,6 @@
         updateAnswerPositions();
       }
       function updateAnswerPositions() {
-        // Se distribuyen los paneles en arco a partir de la posición y dirección inicial de la cámara
         const radius = 0.8;
         const gapWorld = 0.05;
         const gapAngle = gapWorld / radius;
@@ -552,7 +549,6 @@
         });
       }
       function updateAnswerObjects() {
-        // Se crean las respuestas falsas y se asigna la correcta
         const n = selectedNumAnswers;
         const wrongSet = new Set();
         while (wrongSet.size < (n - 1)) {
@@ -568,7 +564,7 @@
       }
 
       // ---------------------------------------------------------------------
-      // Panel de pregunta en AR
+      // Panel de pregunta
       function updateQuestionPanel() {
         const tmpCanvas = document.createElement('canvas');
         tmpCanvas.width = 512 * resolutionFactor;
@@ -617,7 +613,7 @@
       }
 
       // ---------------------------------------------------------------------
-      // Display de puntuación y countdown en AR
+      // Display de puntuación y countdown
       function createScoreDisplay() {
         const canvas = document.createElement('canvas');
         canvas.width = 256 * resolutionFactor;
@@ -687,7 +683,7 @@
       }
 
       // ---------------------------------------------------------------------
-      // Funciones para la tabla de clasificación final en AR
+      // Funciones para el leaderboard final en AR
       async function endGame() {
         gameOver = true;
         if (questionMesh) scene.remove(questionMesh);
@@ -695,11 +691,9 @@
         if (scoreMesh) scene.remove(scoreMesh);
         answers.forEach(a => scene.remove(a));
 
-        // En este juego usaremos como puntaje la diferencia: aciertos - fallos
         const rawScore = correctCount - wrongCount;
         const finalScore = parseFloat(rawScore.toFixed(3));
         const collectionName = `Capleaderboatd_${selectedNumAnswers}`;
-        // Buscar si existe un documento con el mismo nombre de jugador
         let docsFound = await getDocs(
           query(
             collection(db, collectionName),
@@ -720,7 +714,6 @@
             timestamp: serverTimestamp()
           });
         }
-        // Consultar el leaderboard completo
         let qLeaderboard = query(
           collection(db, collectionName),
           orderBy("score", "desc")
@@ -752,7 +745,6 @@
       function createLeaderboardMesh() {
         if (leaderboardMesh) scene.remove(leaderboardMesh);
         if (restartButtonMesh) scene.remove(restartButtonMesh);
-        // Canvas para el leaderboard en AR
         const dummyCanvas = document.createElement('canvas');
         dummyCanvas.width = 512;
         dummyCanvas.height = 512;
@@ -772,7 +764,6 @@
         leaderboardMesh.userData.planeHeight = planeHeight;
         leaderboardMesh.position.set(0, 0, -1.2);
         scene.add(leaderboardMesh);
-        // Botón Reiniciar
         restartButtonMesh = createButton("Reiniciar");
         restartButtonMesh.position.set(0, -0.3, -1.1);
         scene.add(restartButtonMesh);
@@ -873,7 +864,7 @@
         light.position.set(0.5, 1, 0.25);
         scene.add(light);
         window.addEventListener('resize', onWindowResize);
-        // Overlay inicial (adaptado para incluir leaderboardPreview y campo de nombre)
+        // Overlay inicial
         const overlay = document.createElement('div');
         overlay.id = 'overlay';
         overlay.innerHTML = `
@@ -894,7 +885,6 @@
           <div id="leaderboardPreview"></div>
           <input type="text" id="playerName" placeholder="Ingresa tu nombre" maxlength="10">
         `;
-        // Botón AR (se configura con features para hand-tracking o hit-test)
         const arButton = ARButton.createButton(renderer, {
           requiredFeatures: ['hit-test'],
           optionalFeatures: ['hand-tracking']
@@ -909,17 +899,17 @@
         arButton.style.color = 'white';
         overlay.appendChild(arButton);
         document.body.appendChild(overlay);
-        // Actualizar leaderboardPreview cuando se cambie el número de respuestas
         const selectAnswers = document.getElementById('numAnswers');
         selectAnswers.addEventListener('change', () => {
           const num = parseInt(selectAnswers.value) || 4;
           updateLeaderboardPreview(num);
         });
         updateLeaderboardPreview(4);
-        // Al iniciar la sesión XR, se obtiene el número de respuestas y el nombre del jugador
+        // Al iniciar la sesión XR, usar renderer.xr.getCamera para obtener la cámara real
         renderer.xr.addEventListener('sessionstart', () => {
-          camera.getWorldPosition(initialCameraPos);
-          camera.getWorldDirection(initialCameraDir);
+          const xrCamera = renderer.xr.getCamera(camera);
+          xrCamera.getWorldPosition(initialCameraPos);
+          xrCamera.getWorldDirection(initialCameraDir);
           initialCameraDir.normalize();
           selectedNumAnswers = parseInt(document.getElementById('numAnswers').value) || 4;
           playerName = document.getElementById('playerName').value || "Jugador";
@@ -959,7 +949,6 @@
             endGame();
           }
         }
-        // Detección de colisiones (usando manos o, en su defecto, la cámara)
         const session = renderer.xr.getSession();
         let interactionPoints = [];
         if (session && xrFrame) {
@@ -1039,7 +1028,6 @@
             }
           }
         }
-        // Actualizar sistemas de chispas
         const now = performance.now();
         for (let i = sparksSystems.length - 1; i >= 0; i--) {
           const sys = sparksSystems[i];
@@ -1065,7 +1053,6 @@
         }
       }
 
-      // Desbloqueo de audio en móviles
       window.addEventListener('touchstart', function unlockAudio() {
         const s1 = document.getElementById('successSound');
         const s2 = document.getElementById('errorSound');
@@ -1074,7 +1061,6 @@
         });
       }, { once: true });
 
-      // Raycasting por touch para móviles
       window.addEventListener('touchstart', function(event) {
         if (!/Mobi|Android/i.test(navigator.userAgent)) return;
         const t = event.touches[0];
