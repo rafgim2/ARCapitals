@@ -197,7 +197,7 @@
       let playerPosition = null;
       let leaderboardMesh = null, restartButtonMesh = null, scrollUpButtonMesh = null, scrollDownButtonMesh = null;
 
-      // ¡Variables faltantes!
+      // Variables faltantes
       let gameStartTime = 0; // Para el cronómetro de juego
       let playerName = "";   // Para almacenar el nombre del jugador
 
@@ -342,104 +342,89 @@
         renderer.setSize(window.innerWidth, window.innerHeight);
       }
 
-      // Crear objetos de respuesta (inicial y actualización)
-      function createAnswerObjects(numAnswers, initialCreation) {
-        if (initialCreation) {
-          const radius = 0.8;
-          const angleStart = -Math.PI/4;
-          const angleEnd = Math.PI/4;
-          for (let i = 0; i < numAnswers; i++) {
-            const canvas = document.createElement('canvas');
-            canvas.width = 256 * resolutionFactor;
-            canvas.height = 256 * resolutionFactor;
-            const ctx = canvas.getContext('2d');
-            ctx.clearRect(0, 0, canvas.width, canvas.height);
-            ctx.fillStyle = "#007BFF";
-            drawRoundedRect(ctx, 0, 0, canvas.width, canvas.height, 20 * resolutionFactor);
-            ctx.fillStyle = "#FFFFFF";
-            ctx.font = 'Bold ' + (75 * resolutionFactor) + 'px Arial';
-            ctx.textAlign = 'center';
-            ctx.textBaseline = 'middle';
-            ctx.fillText("...", canvas.width / 2, canvas.height / 2);
-
-            const texture = new THREE.CanvasTexture(canvas);
-            texture.minFilter = THREE.LinearFilter;
-            texture.magFilter = THREE.LinearFilter;
-            const material = new THREE.MeshBasicMaterial({ map: texture, side: THREE.DoubleSide, transparent: true });
-            const geometry = new THREE.PlaneGeometry(0.15, 0.15);
-            const mesh = new THREE.Mesh(geometry, material);
-            const angle = angleStart + (angleEnd - angleStart) * (i / (numAnswers - 1));
-            mesh.position.set(
-              radius * Math.sin(angle),
-              0,
-              -radius * Math.cos(angle)
-            );
-            mesh.lookAt(initialCameraPos);
-            mesh.userData.answer = "";
-            answers.push(mesh);
-            scene.add(mesh);
-          }
-        } else {
-          const wrongSet = new Set();
-          while (wrongSet.size < (selectedNumAnswers - 1)) {
-            const rnd = Math.floor(Math.random() * countries.length);
-            const cand = countries[rnd].capital;
-            if (cand !== correctAnswer) {
-              wrongSet.add(cand);
-            }
-          }
-          const array = [correctAnswer, ...wrongSet];
-          array.sort(() => Math.random() - 0.5);
-          for (let i = 0; i < selectedNumAnswers; i++) {
-            updateAnswerPanel(answers[i], array[i]);
-          }
-        }
-      }
-
-      // Actualiza un panel de respuesta con el valor indicado
-      function updateAnswerPanel(mesh, value) {
-        const canvas = document.createElement('canvas');
-        canvas.width = 256 * resolutionFactor;
-        canvas.height = 256 * resolutionFactor;
-        const ctx = canvas.getContext('2d');
-        ctx.clearRect(0, 0, canvas.width, canvas.height);
-        ctx.fillStyle = "#007BFF";
-        drawRoundedRect(ctx, 0, 0, canvas.width, canvas.height, 20 * resolutionFactor);
-        ctx.font = 'Bold ' + (75 * resolutionFactor) + 'px Arial';
-        ctx.fillStyle = "#FFFFFF";
-        ctx.textAlign = 'center';
-        ctx.textBaseline = 'middle';
-        ctx.fillText(value, canvas.width / 2, canvas.height / 2);
-        const texture = new THREE.CanvasTexture(canvas);
-        texture.minFilter = THREE.LinearFilter;
-        texture.magFilter = THREE.LinearFilter;
-        mesh.material.map = texture;
-        mesh.material.needsUpdate = true;
-        mesh.userData.answer = value;
-      }
-
-      // Actualiza el panel de la pregunta
+      // Función actualizada para el panel de pregunta: se adapta al largo del texto
       function updateQuestionPanel() {
+        // Canvas temporal para medir el texto
+        const tmpCanvas = document.createElement('canvas');
+        const tmpCtx = tmpCanvas.getContext('2d');
+        const fontSize = 48 * resolutionFactor;
+        tmpCtx.font = 'Bold ' + fontSize + 'px Arial';
+        const metrics = tmpCtx.measureText(questionText);
+        const padding = 40 * resolutionFactor;
+        const canvasWidth = metrics.width + padding;
+        const canvasHeight = 128 * resolutionFactor;
+
+        // Canvas real con dimensiones calculadas
         const canvas = document.createElement('canvas');
-        canvas.width = 512 * resolutionFactor;
-        canvas.height = 128 * resolutionFactor;
+        canvas.width = canvasWidth;
+        canvas.height = canvasHeight;
         const ctx = canvas.getContext('2d');
+        ctx.font = 'Bold ' + fontSize + 'px Arial';
         ctx.fillStyle = "#007BFF";
         drawRoundedRect(ctx, 0, 0, canvas.width, canvas.height, 20 * resolutionFactor);
-        ctx.font = 'Bold ' + (48 * resolutionFactor) + 'px Arial';
         ctx.fillStyle = "#FFFFFF";
         ctx.textAlign = 'center';
         ctx.textBaseline = 'middle';
         ctx.fillText(questionText, canvas.width / 2, canvas.height / 2);
+
         const texture = new THREE.CanvasTexture(canvas);
         texture.minFilter = THREE.LinearFilter;
         texture.magFilter = THREE.LinearFilter;
-        const geometry = new THREE.PlaneGeometry(0.6, 0.15);
+
+        // Factor de escala (ajústalo según tus necesidades)
+        const scaleX = 0.6 / (512 * resolutionFactor);
+        const scaleY = 0.15 / (128 * resolutionFactor);
+        const newWidth = canvas.width * scaleX;
+        const newHeight = canvas.height * scaleY;
+
+        if (questionMesh) scene.remove(questionMesh);
+        const geometry = new THREE.PlaneGeometry(newWidth, newHeight);
         const material = new THREE.MeshBasicMaterial({ map: texture, side: THREE.DoubleSide, transparent: true });
-        if(questionMesh) scene.remove(questionMesh);
         questionMesh = new THREE.Mesh(geometry, material);
         questionMesh.position.set(0, 0.3, -0.8);
         scene.add(questionMesh);
+      }
+
+      // Función actualizada para cada panel de respuesta: se ajusta al largo del texto
+      function updateAnswerPanel(mesh, value) {
+        // Canvas temporal para medir el texto de la respuesta
+        const tmpCanvas = document.createElement('canvas');
+        const tmpCtx = tmpCanvas.getContext('2d');
+        const fontSize = 75 * resolutionFactor;
+        tmpCtx.font = 'Bold ' + fontSize + 'px Arial';
+        const metrics = tmpCtx.measureText(value);
+        const padding = 40 * resolutionFactor;
+        const canvasWidth = metrics.width + padding;
+        const canvasHeight = fontSize + padding;
+
+        // Canvas real con dimensiones calculadas
+        const canvas = document.createElement('canvas');
+        canvas.width = canvasWidth;
+        canvas.height = canvasHeight;
+        const ctx = canvas.getContext('2d');
+        ctx.font = 'Bold ' + fontSize + 'px Arial';
+        ctx.fillStyle = "#007BFF";
+        drawRoundedRect(ctx, 0, 0, canvas.width, canvas.height, 20 * resolutionFactor);
+        ctx.fillStyle = "#FFFFFF";
+        ctx.textAlign = 'center';
+        ctx.textBaseline = 'middle';
+        ctx.fillText(value, canvas.width / 2, canvas.height / 2);
+
+        const texture = new THREE.CanvasTexture(canvas);
+        texture.minFilter = THREE.LinearFilter;
+        texture.magFilter = THREE.LinearFilter;
+
+        // Factor de escala para adaptar el tamaño del panel
+        const scaleFactor = 0.15 / (256 * resolutionFactor);
+        const newWidth = canvas.width * scaleFactor;
+        const newHeight = canvas.height * scaleFactor;
+
+        mesh.material.map = texture;
+        mesh.material.needsUpdate = true;
+        mesh.geometry.dispose();
+        mesh.geometry = new THREE.PlaneGeometry(newWidth, newHeight);
+        mesh.userData.panelWidth = newWidth;
+        mesh.userData.answer = value;
       }
 
       // Array completo de países y capitales
