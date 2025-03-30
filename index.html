@@ -347,8 +347,19 @@
       function createAnswerObjects(numAnswers, initialCreation) {
         if (initialCreation) {
           const radius = 0.8;
-          const angleStart = -Math.PI/4;
-          const angleEnd = Math.PI/4;
+          // Calcula el ángulo mínimo requerido para evitar solapamientos
+          // Usamos 0.15 como ancho base del panel y el radio definido
+          const panelWidth = 0.15;
+          const minSeparation = 2 * Math.atan(panelWidth / (2 * radius));
+          // Definimos un rango por defecto (para pocas respuestas no se separen demasiado)
+          const defaultRange = Math.PI / 4; // 45 grados
+          // Calculamos el rango requerido según el número de respuestas
+          const requiredRange = (numAnswers - 1) * minSeparation;
+          // Usamos el mayor de ambos para que nunca se solapen, pero sin separar de más si son pocas
+          const totalRange = Math.max(defaultRange, requiredRange);
+          const angleStart = -totalRange / 2;
+          const angleEnd = totalRange / 2;
+          
           for (let i = 0; i < numAnswers; i++) {
             const canvas = document.createElement('canvas');
             canvas.width = 256 * resolutionFactor;
@@ -369,6 +380,7 @@
             const material = new THREE.MeshBasicMaterial({ map: texture, side: THREE.DoubleSide, transparent: true });
             const geometry = new THREE.PlaneGeometry(0.15, 0.15);
             const mesh = new THREE.Mesh(geometry, material);
+            // Calcula el ángulo para cada respuesta
             const angle = angleStart + (angleEnd - angleStart) * (i / (numAnswers - 1));
             mesh.position.set(
               radius * Math.sin(angle),
@@ -678,8 +690,7 @@
         const canvas = document.createElement('canvas');
         canvas.width = 256 * resolutionFactor;
         canvas.height = 128 * resolutionFactor;
-        const ctx = canvas.getContext('2d');
-        scoreMesh = createCanvasPlane(canvas, ctx, 0.6, 0.3);
+        scoreMesh = createCanvasPlane(canvas, canvas.getContext('2d'), 0.6, 0.3);
         scoreMesh.position.set(0, -0.2, -0.82);
         scene.add(scoreMesh);
       }
