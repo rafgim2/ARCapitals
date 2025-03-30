@@ -383,7 +383,7 @@
             scene.add(mesh);
           }
         } else {
-          // Actualización de los paneles de respuesta: se genera el array de textos (uno correcto y los incorrectos)
+          // Generación del array de textos (uno correcto y los incorrectos)
           const wrongSet = new Set();
           while (wrongSet.size < (selectedNumAnswers - 1)) {
             const rnd = Math.floor(Math.random() * countries.length);
@@ -395,49 +395,51 @@
           const array = [correctAnswer, ...wrongSet];
           array.sort(() => Math.random() - 0.5);
           
-          // Se calcula la anchura escalada máxima entre los paneles, basada en la longitud del texto
-          const scaleFactor = 0.15 / (256 * resolutionFactor);
-          let maxScaledWidth = 0;
-          const fontSize = 75 * resolutionFactor;
-          for (let text of array) {
-            const tmpCanvas = document.createElement('canvas');
-            const tmpCtx = tmpCanvas.getContext('2d');
-            tmpCtx.font = 'Bold ' + fontSize + 'px Arial';
-            const metrics = tmpCtx.measureText(text);
-            const padding = 40 * resolutionFactor;
-            const canvasWidth = metrics.width + padding;
-            const scaledWidth = canvasWidth * scaleFactor;
-            if (scaledWidth > maxScaledWidth) {
-              maxScaledWidth = scaledWidth;
-            }
-          }
-          
-          // Para que no se solapen, se requiere que la separación angular entre dos paneles sea al menos:
-          // 2 * arctan((maxScaledWidth/2)/radius)
-          const radius = 0.8;
-          const minSeparation = 2 * Math.atan((maxScaledWidth/2) / radius);
-          // Se define un rango mínimo (por si los textos son muy cortos) para que las respuestas no se separen demasiado
-          const defaultRange = Math.PI / 4; // 45°
-          const requiredRange = (selectedNumAnswers - 1) * minSeparation;
-          const totalRange = Math.max(defaultRange, requiredRange);
-          const angleStart = -totalRange / 2;
-          const angleEnd = totalRange / 2;
-          
-          // Se actualiza cada panel con su texto y se reposiciona de acuerdo al ángulo calculado
+          // Actualizamos cada panel con su texto
           for (let i = 0; i < selectedNumAnswers; i++) {
             updateAnswerPanel(answers[i], array[i]);
-            const angle = angleStart + (angleEnd - angleStart) * (i / (selectedNumAnswers - 1));
+          }
+          
+          // Ahora calculamos el “ancho angular” individual para cada panel
+          // y posicionamos de forma que el espacio entre el borde derecho de uno y el borde izquierdo del siguiente sea uniforme.
+          const radius = 0.8;
+          const uniformGap = 0.1; // separación uniforme entre bordes (en radianes); ajústalo a tu gusto
+          let alphas = [];
+          for (let i = 0; i < selectedNumAnswers; i++) {
+            // Cada panel tiene un ancho escalado (en scene units) almacenado en userData.panelWidth
+            let panelWidth = answers[i].userData.panelWidth;
+            let alpha = Math.atan((panelWidth / 2) / radius);
+            alphas.push(alpha);
+          }
+          // Calculamos el ángulo total necesario:
+          // totalSpan = (borde izquierdo del primero hasta borde derecho del último)
+          // = alphas[0] + (N-1)*uniformGap + suma de (alpha_i + alpha_(i+1)) para i=0..N-2
+          let totalSpan = alphas[0] + alphas[selectedNumAnswers - 1] + uniformGap * (selectedNumAnswers - 1);
+          for (let i = 0; i < selectedNumAnswers - 1; i++) {
+            totalSpan += alphas[i] + alphas[i + 1];
+          }
+          // Para centrar, definimos el ángulo del borde izquierdo del primer panel como -totalSpan/2
+          // Entonces, el centro del primer panel estará a: theta0 = (-totalSpan/2) + alphas[0]
+          let theta = [];
+          theta[0] = -totalSpan / 2 + alphas[0];
+          // Para cada panel siguiente:
+          for (let i = 0; i < selectedNumAnswers - 1; i++) {
+            // La relación es: (centro del panel i + su mitad derecha) + gap = (centro del panel i+1 - su mitad izquierda)
+            theta[i + 1] = theta[i] + alphas[i] + uniformGap + alphas[i + 1];
+          }
+          // Finalmente, reposicionamos cada panel con el ángulo calculado uniformemente
+          for (let i = 0; i < selectedNumAnswers; i++) {
             answers[i].position.set(
-              radius * Math.sin(angle),
+              radius * Math.sin(theta[i]),
               answers[i].position.y,
-              -radius * Math.cos(angle)
+              -radius * Math.cos(theta[i])
             );
             answers[i].lookAt(initialCameraPos);
           }
         }
       }
 
-      // Función actualizada para actualizar el panel de respuesta, adaptando el tamaño al texto
+      // Función para actualizar el panel de respuesta, adaptando el tamaño al texto
       function updateAnswerPanel(mesh, value) {
         // Canvas temporal para medir el texto
         const tmpCanvas = document.createElement('canvas');
@@ -475,11 +477,12 @@
         mesh.material.needsUpdate = true;
         mesh.geometry.dispose();
         mesh.geometry = new THREE.PlaneGeometry(newWidth, newHeight);
+        // Guardamos el ancho del panel en scene units para el cálculo posterior
         mesh.userData.panelWidth = newWidth;
         mesh.userData.answer = value;
       }
 
-      // Función actualizada para actualizar el panel de la pregunta, adaptándolo al largo del texto
+      // Función para actualizar el panel de la pregunta, adaptándolo al largo del texto
       function updateQuestionPanel() {
         // Canvas temporal para medir el texto
         const tmpCanvas = document.createElement('canvas');
@@ -742,7 +745,7 @@
         countdownMesh.position.set(0, 0.50, -0.82);
         scene.add(countdownMesh);
       }
-      // CORRECCIÓN: el beep se reproduce solo si el tiempo restante es <= -10 (10 seg. después de terminar)
+      // El beep se reproduce solo si el tiempo restante es <= -10 (10 seg. después de terminar)
       function updateCountdown() {
         if (!countdownMesh) return;
         const { canvas, ctx, texture } = countdownMesh.userData;
