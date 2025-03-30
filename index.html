@@ -90,7 +90,7 @@
     <audio id="beepSound" src="https://raw.githubusercontent.com/rafgim2/ARCapitals/main/error.wav" preload="auto"></audio>
 
     <script type="module">
-      /***** 1) Inicialización de Firebase y Firestore *****/
+      /***** 1) Firebase y Firestore *****/
       import { initializeApp } from "https://www.gstatic.com/firebasejs/9.22.0/firebase-app.js";
       import { getAnalytics } from "https://www.gstatic.com/firebasejs/9.22.0/firebase-analytics.js";
       import { 
@@ -112,7 +112,7 @@
       const analytics = getAnalytics(appFirebase);
       const db = getFirestore(appFirebase);
 
-      /***** 2) Código AR Capitals con leaderboard y tiempos *****/
+      /***** 2) Código AR Capitals *****/
       import * as THREE from 'https://cdn.jsdelivr.net/npm/three@0.138.0/build/three.module.js';
       import { ARButton } from 'https://cdn.jsdelivr.net/npm/three@0.138.0/examples/jsm/webxr/ARButton.js';
 
@@ -296,7 +296,7 @@
       ];
 
       // Variables globales del juego
-      let camera, scene, renderer;
+      let scene, renderer;
       let questionMesh = null;
       let answers = [];
       let correctAnswer = "";
@@ -310,12 +310,11 @@
       const collisionThreshold = 0.2;
       const resolutionFactor = 4;
       
+      let camera; // Se declara la cámara una sola vez
       let countdownMesh, scoreMesh;
       let beepPlayed = false;
       let gameReady = false;
       let countdownStarted = false;
-      
-      // ¡IMPORTANTE! Se agregó la declaración de gameStartTime
       let gameStartTime = 0;
       
       // Variables para tiempos y leaderboard
@@ -330,15 +329,13 @@
       const pageSize = 10;
       let playerPosition = null;
       
-      // Posición y dirección inicial de la cámara
       let initialCameraPos = new THREE.Vector3();
       let initialCameraDir = new THREE.Vector3();
       
-      // Sparks
       let sparkTexture = null;
       const sparksSystems = [];
       
-      /***** Función para actualizar la vista previa del leaderboard en el overlay *****/
+      /***** Función para actualizar el leaderboard en el overlay *****/
       async function updateLeaderboardPreview(numAnswers) {
         const collectionName = `Capleaderboard_${numAnswers}`;
         try {
@@ -376,7 +373,7 @@
         }
       }
       
-      /***** Funciones AR *****/
+      /***** Funciones AR y del juego *****/
       function init() {
         scene = new THREE.Scene();
         camera = new THREE.PerspectiveCamera(70, window.innerWidth/window.innerHeight, 0.01, 20);
@@ -386,6 +383,8 @@
         renderer.xr.enabled = true;
         document.body.appendChild(renderer.domElement);
       
+        // Crear cámara (ya creada arriba) y agregar luz
+        scene.add(camera);
         const light = new THREE.HemisphereLight(0xffffff, 0xbbbbff, 1);
         light.position.set(0.5, 1, 0.25);
         scene.add(light);
@@ -441,7 +440,8 @@
           initialCameraDir.normalize();
       
           selectedNumAnswers = parseInt(document.getElementById('numAnswers').value) || 4;
-          playerName = document.getElementById('playerName').value || "Jugador";
+          const nameInput = document.getElementById('playerName').value;
+          playerName = nameInput ? nameInput : "Jugador";
       
           createAnswerObjects(selectedNumAnswers, true);
           overlay.remove();
@@ -730,7 +730,7 @@
         renderer.setAnimationLoop(render);
       }
       
-      // CORRECCIÓN: Se incluye el parámetro xrFrame en la firma de render
+      // Se incluye el parámetro xrFrame en render para que la detección funcione
       function render(timestamp, xrFrame) {
         renderer.render(scene, camera);
       
@@ -885,7 +885,7 @@
           const dt = (now - sys.lastUpdate)/1000;
           sys.lastUpdate = now;
           const posArray = sys.points.geometry.attributes.position.array;
-          for(let j = 0; j< sys.velocities.length; j++){
+          for(let j = 0; j < sys.velocities.length; j++){
             posArray[j*3+0] += sys.velocities[j].x * dt;
             posArray[j*3+1] += sys.velocities[j].y * dt;
             posArray[j*3+2] += sys.velocities[j].z * dt;
@@ -989,12 +989,15 @@
         leaderboardMesh.userData.planeHeight = planeHeight;
         leaderboardMesh.position.set(0, 0, -1.2);
         scene.add(leaderboardMesh);
+      
         restartButtonMesh = createButton("Reiniciar");
         restartButtonMesh.position.set(0, -0.8, -1.1);
         scene.add(restartButtonMesh);
+      
         scrollUpButtonMesh = createButton("▲", 0.1, 0.1);
         scrollUpButtonMesh.position.set(-0.6, 0.5, -1.1);
         scene.add(scrollUpButtonMesh);
+      
         scrollDownButtonMesh = createButton("▼", 0.1, 0.1);
         scrollDownButtonMesh.position.set(-0.6, -0.4, -1.1);
         scene.add(scrollDownButtonMesh);
