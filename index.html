@@ -346,20 +346,10 @@
       // Crear objetos de respuesta (inicial y actualización)
       function createAnswerObjects(numAnswers, initialCreation) {
         if (initialCreation) {
+          // Creación inicial con paneles de placeholder (se posicionan de forma aproximada)
           const radius = 0.8;
-          // Calcula el ángulo mínimo requerido para evitar solapamientos
-          // Usamos 0.15 como ancho base del panel y el radio definido
-          const panelWidth = 0.15;
-          const minSeparation = 2 * Math.atan(panelWidth / (2 * radius));
-          // Definimos un rango por defecto (para pocas respuestas no se separen demasiado)
-          const defaultRange = Math.PI / 4; // 45 grados
-          // Calculamos el rango requerido según el número de respuestas
-          const requiredRange = (numAnswers - 1) * minSeparation;
-          // Usamos el mayor de ambos para que nunca se solapen, pero sin separar de más si son pocas
-          const totalRange = Math.max(defaultRange, requiredRange);
-          const angleStart = -totalRange / 2;
-          const angleEnd = totalRange / 2;
-          
+          const angleStart = -Math.PI/4;
+          const angleEnd = Math.PI/4;
           for (let i = 0; i < numAnswers; i++) {
             const canvas = document.createElement('canvas');
             canvas.width = 256 * resolutionFactor;
@@ -380,7 +370,7 @@
             const material = new THREE.MeshBasicMaterial({ map: texture, side: THREE.DoubleSide, transparent: true });
             const geometry = new THREE.PlaneGeometry(0.15, 0.15);
             const mesh = new THREE.Mesh(geometry, material);
-            // Calcula el ángulo para cada respuesta
+            // Posición aproximada
             const angle = angleStart + (angleEnd - angleStart) * (i / (numAnswers - 1));
             mesh.position.set(
               radius * Math.sin(angle),
@@ -393,6 +383,7 @@
             scene.add(mesh);
           }
         } else {
+          // Actualización de los paneles de respuesta: se genera el array de textos (uno correcto y los incorrectos)
           const wrongSet = new Set();
           while (wrongSet.size < (selectedNumAnswers - 1)) {
             const rnd = Math.floor(Math.random() * countries.length);
@@ -403,8 +394,45 @@
           }
           const array = [correctAnswer, ...wrongSet];
           array.sort(() => Math.random() - 0.5);
+          
+          // Se calcula la anchura escalada máxima entre los paneles, basada en la longitud del texto
+          const scaleFactor = 0.15 / (256 * resolutionFactor);
+          let maxScaledWidth = 0;
+          const fontSize = 75 * resolutionFactor;
+          for (let text of array) {
+            const tmpCanvas = document.createElement('canvas');
+            const tmpCtx = tmpCanvas.getContext('2d');
+            tmpCtx.font = 'Bold ' + fontSize + 'px Arial';
+            const metrics = tmpCtx.measureText(text);
+            const padding = 40 * resolutionFactor;
+            const canvasWidth = metrics.width + padding;
+            const scaledWidth = canvasWidth * scaleFactor;
+            if (scaledWidth > maxScaledWidth) {
+              maxScaledWidth = scaledWidth;
+            }
+          }
+          
+          // Para que no se solapen, se requiere que la separación angular entre dos paneles sea al menos:
+          // 2 * arctan((maxScaledWidth/2)/radius)
+          const radius = 0.8;
+          const minSeparation = 2 * Math.atan((maxScaledWidth/2) / radius);
+          // Se define un rango mínimo (por si los textos son muy cortos) para que las respuestas no se separen demasiado
+          const defaultRange = Math.PI / 4; // 45°
+          const requiredRange = (selectedNumAnswers - 1) * minSeparation;
+          const totalRange = Math.max(defaultRange, requiredRange);
+          const angleStart = -totalRange / 2;
+          const angleEnd = totalRange / 2;
+          
+          // Se actualiza cada panel con su texto y se reposiciona de acuerdo al ángulo calculado
           for (let i = 0; i < selectedNumAnswers; i++) {
             updateAnswerPanel(answers[i], array[i]);
+            const angle = angleStart + (angleEnd - angleStart) * (i / (selectedNumAnswers - 1));
+            answers[i].position.set(
+              radius * Math.sin(angle),
+              answers[i].position.y,
+              -radius * Math.cos(angle)
+            );
+            answers[i].lookAt(initialCameraPos);
           }
         }
       }
@@ -714,7 +742,7 @@
         countdownMesh.position.set(0, 0.50, -0.82);
         scene.add(countdownMesh);
       }
-      // CORRECCIÓN: ahora el beep (error) se reproduce solo si el tiempo restante es <= -10 (es decir, 10 seg. después de terminar)
+      // CORRECCIÓN: el beep se reproduce solo si el tiempo restante es <= -10 (10 seg. después de terminar)
       function updateCountdown() {
         if (!countdownMesh) return;
         const { canvas, ctx, texture } = countdownMesh.userData;
