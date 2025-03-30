@@ -10,7 +10,7 @@
         font-family: sans-serif; 
         overflow-y: auto;
       }
-      /* Overlay inicial (igual que en multiplicaciones) */
+      /* Overlay inicial (idéntico al de multiplicaciones) */
       #overlay {
         position: absolute;
         top: 0;
@@ -142,7 +142,7 @@
       const collisionThreshold = 0.2;
       const resolutionFactor = 4;
       
-      // Agregamos la declaración de gameStartTime
+      // Declaración de gameStartTime (faltaba)
       let gameStartTime = 0;
       
       let countdownMesh, countdownCanvas, countdownCtx, countdownTexture;
@@ -163,7 +163,7 @@
       let scrollUpButtonMesh = null;
       let scrollDownButtonMesh = null;
       
-      // En el código funcional de multiplicaciones no se capturan manualmente la posición de la cámara
+      // En AR la cámara se sitúa en el origen, no es necesaria una captura manual
       let initialCameraPos = new THREE.Vector3();
       let initialCameraDir = new THREE.Vector3();
       
@@ -433,6 +433,8 @@
         renderer.setPixelRatio(window.devicePixelRatio);
         renderer.setSize(window.innerWidth, window.innerHeight);
         renderer.xr.enabled = true;
+        // Establecer el tipo de espacio de referencia
+        renderer.xr.setReferenceSpaceType('local');
         document.body.appendChild(renderer.domElement);
       
         const light = new THREE.HemisphereLight(0xffffff, 0xbbbbff, 1);
@@ -489,8 +491,7 @@
           selectedNumAnswers = parseInt(document.getElementById('numAnswers').value) || 4;
           playerName = document.getElementById('playerName').value || "Jugador";
       
-          // En el código funcional no se captura manualmente la posición de la cámara,
-          // ya que en AR la cámara se encuentra en el origen.
+          // En el código funcional de multiplicaciones no se captura manualmente la posición de la cámara
           createAnswerObjects(selectedNumAnswers, true);
           overlay.remove();
           generateQuestion();
@@ -575,7 +576,7 @@
           currentAngle += (panelAngles[i-1] / 2) + gapAngle + (panelAngles[i] / 2);
           angles.push(currentAngle);
         }
-        // Usamos vectores fijos para posicionar (como en el código funcional de multiplicaciones)
+        // Usamos vectores fijos para posicionar (como en el código funcional)
         const up = new THREE.Vector3(0,1,0);
         const right = new THREE.Vector3(1,0,0);
         const forwardHorizontal = new THREE.Vector3(0,0,-1);
@@ -588,7 +589,7 @@
           const finalPos = new THREE.Vector3().copy(centerPos).add(offset);
           mesh.position.copy(finalPos);
           mesh.userData.baseY = finalPos.y;
-          // Hacemos que mire hacia el origen (la cámara en AR)
+          // Que mire hacia el origen (la cámara en AR)
           mesh.lookAt(centerPos);
         });
       }
