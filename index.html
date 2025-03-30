@@ -91,6 +91,7 @@
     <audio id="successSound" src="https://raw.githubusercontent.com/rafgim2/ARCapitals/main/acierto.wav" preload="auto"></audio>
     <audio id="errorSound" src="https://raw.githubusercontent.com/rafgim2/ARCapitals/main/error.wav" preload="auto"></audio>
     <audio id="timerSound" src="https://raw.githubusercontent.com/rafgim2/ARCapitals/main/timer7.mp3" preload="auto"></audio>
+    <!-- Nota: actualmente, beepSound usa el mismo archivo que errorSound -->
     <audio id="beepSound" src="https://raw.githubusercontent.com/rafgim2/ARCapitals/main/error.wav" preload="auto"></audio>
 
     <script type="module">
@@ -702,6 +703,7 @@
         countdownMesh.position.set(0, 0.50, -0.82);
         scene.add(countdownMesh);
       }
+      // CORRECCIÓN: ahora el beep (error) se reproduce solo si el tiempo restante es <= -10 (es decir, 10 seg. después de terminar)
       function updateCountdown() {
         if (!countdownMesh) return;
         const { canvas, ctx, texture } = countdownMesh.userData;
@@ -715,7 +717,7 @@
         ctx.textBaseline = "middle";
         ctx.fillText(seconds < 10 ? "00:0" + seconds : "00:" + seconds, canvas.width / 2, canvas.height / 2);
         texture.needsUpdate = true;
-        if (remaining <= 10 && !beepPlayed) {
+        if (remaining <= -10 && !beepPlayed) {
           const beepSound = document.getElementById('beepSound');
           beepSound.currentTime = 0;
           beepSound.play().catch(e => {});
