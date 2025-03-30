@@ -93,6 +93,11 @@
     <audio id="beepSound" src="https://raw.githubusercontent.com/rafgim2/ARCapitals/main/error.wav" preload="auto"></audio>
 
     <script type="module">
+      // Listener global para ver errores de promesas (útil para depurar)
+      window.addEventListener('unhandledrejection', event => {
+        console.error('Unhandled rejection:', event.reason);
+      });
+
       /***** Firebase y Firestore *****/
       import { initializeApp } from "https://www.gstatic.com/firebasejs/9.22.0/firebase-app.js";
       import { getAnalytics } from "https://www.gstatic.com/firebasejs/9.22.0/firebase-analytics.js";
@@ -119,7 +124,7 @@
       async function updateLeaderboardPreview(numAnswers) {
         const collectionName = `Capleaderboatd_${numAnswers}`;
         try {
-          let top3Query = query(
+          const top3Query = query(
             collection(db, collectionName),
             orderBy("score", "desc"),
             limit(3)
@@ -131,7 +136,7 @@
           });
 
           const container = document.getElementById('leaderboardPreview');
-          container.innerHTML = ""; // Limpiar contenido previo
+          container.innerHTML = "";
 
           if (results.length > 0) {
             let html = "<table>";
@@ -694,32 +699,36 @@
         const rawScore = correctCount - wrongCount;
         const finalScore = parseFloat(rawScore.toFixed(3));
         const collectionName = `Capleaderboatd_${selectedNumAnswers}`;
-        let docsFound = await getDocs(
-          query(
-            collection(db, collectionName),
-            where("name", "==", playerName),
-            limit(1)
-          )
-        );
-        if (!docsFound.empty) {
-          const docToUpdate = docsFound.docs[0];
-          await updateDoc(doc(db, collectionName, docToUpdate.id), {
-            score: finalScore,
-            timestamp: serverTimestamp()
-          });
-        } else {
-          await addDoc(collection(db, collectionName), {
-            name: playerName,
-            score: finalScore,
-            timestamp: serverTimestamp()
-          });
+        try {
+          const docsFound = await getDocs(
+            query(
+              collection(db, collectionName),
+              where("name", "==", playerName),
+              limit(1)
+            )
+          );
+          if (!docsFound.empty) {
+            const docToUpdate = docsFound.docs[0];
+            await updateDoc(doc(db, collectionName, docToUpdate.id), {
+              score: finalScore,
+              timestamp: serverTimestamp()
+            });
+          } else {
+            await addDoc(collection(db, collectionName), {
+              name: playerName,
+              score: finalScore,
+              timestamp: serverTimestamp()
+            });
+          }
+        } catch (err) {
+          console.error("Error al subir el puntaje:", err);
         }
-        let qLeaderboard = query(
-          collection(db, collectionName),
-          orderBy("score", "desc")
-        );
         let querySnapshot;
         try {
+          const qLeaderboard = query(
+            collection(db, collectionName),
+            orderBy("score", "desc")
+          );
           querySnapshot = await getDocs(qLeaderboard);
         } catch (err) {
           console.error("Error consultando el leaderboard:", err);
@@ -905,7 +914,7 @@
           updateLeaderboardPreview(num);
         });
         updateLeaderboardPreview(4);
-        // Al iniciar la sesión XR, usar renderer.xr.getCamera para obtener la cámara real
+        // Al iniciar la sesión XR, usamos renderer.xr.getCamera para obtener la cámara real
         renderer.xr.addEventListener('sessionstart', () => {
           const xrCamera = renderer.xr.getCamera(camera);
           xrCamera.getWorldPosition(initialCameraPos);
