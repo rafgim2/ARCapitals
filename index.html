@@ -186,7 +186,7 @@
       let sparkTexture = null;
       const sparksSystems = [];
 
-      // Variables para medir tiempos de respuesta (funcionalidad del código de multiplicaciones)
+      // Variables para medir tiempos de respuesta
       let currentQuestionStartTime = 0;
       let correctResponseTimes = [];
 
@@ -196,6 +196,10 @@
       const pageSize = 10;
       let playerPosition = null;
       let leaderboardMesh = null, restartButtonMesh = null, scrollUpButtonMesh = null, scrollDownButtonMesh = null;
+
+      // ¡Variables faltantes!
+      let gameStartTime = 0; // Para el cronómetro de juego
+      let playerName = "";   // Para almacenar el nombre del jugador
 
       /***** Función para dibujar un rectángulo redondeado *****/
       function drawRoundedRect(ctx, x, y, w, h, r) {
@@ -246,7 +250,7 @@
         return new THREE.Mesh(geometry, material);
       }
 
-      /***** 4) Funciones de AR para pregunta, respuestas y posicionamiento *****/
+      /***** Funciones de AR para pregunta, respuestas y posicionamiento *****/
       function init() {
         scene = new THREE.Scene();
         camera = new THREE.PerspectiveCamera(70, window.innerWidth / window.innerHeight, 0.01, 20);
@@ -308,7 +312,7 @@
 
         document.body.appendChild(overlay);
 
-        // Al cambiar el número de respuestas se actualiza el leaderboard preview
+        // Actualizar leaderboard preview al cambiar el número de respuestas
         const selectAnswers = document.getElementById('numAnswers');
         selectAnswers.addEventListener('change', () => {
           const num = parseInt(selectAnswers.value) || 4;
@@ -889,7 +893,7 @@
         }
       }
 
-      /***** 10) Funciones de leaderboard final y reinicio *****/
+      /***** Funciones de leaderboard final y reinicio *****/
       async function endGame() {
         gameOver = true;
         if (questionMesh) scene.remove(questionMesh);
