@@ -210,7 +210,7 @@
       
       /***** 5) Función para actualizar el leaderboard preview en el overlay *****/
       async function updateLeaderboardPreview(numAnswers) {
-        const collectionName = `Capleaderboard_${numAnswers}`;
+        const collectionName = `capleaderboard_${numAnswers}`;
         try {
           let top3Query = query(
             collection(db, collectionName),
@@ -248,7 +248,7 @@
         }
       }
       
-      /***** 6) Datos de Países y Capitales (ahora se declaran antes de iniciar AR) *****/
+      /***** 6) Datos de Países y Capitales (se declara antes de iniciar AR) *****/
       const countries = [
         { country: "Afganistán", capital: "Kabul" },
         { country: "Albania", capital: "Tirana" },
@@ -974,7 +974,7 @@
         }
         const rawScore = (correctCount - wrongCount) - avgTime;
         const finalScore = parseFloat(rawScore.toFixed(3));
-        const collectionName = `Capleaderboard_${selectedNumAnswers}`;
+        const collectionName = `capleaderboard_${selectedNumAnswers}`;
       
         let docsFound = await getDocs(
           query(
