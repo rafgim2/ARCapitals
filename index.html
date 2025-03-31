@@ -81,7 +81,7 @@
         padding: 4px;
         text-align: center;
       }
-      /* Contenedor HTML para modo tradicional */
+      /* Contenedor para modo HTML */
       #gameContainer {
         position: relative;
         width: 100%;
@@ -100,7 +100,7 @@
     <audio id="successSound" src="https://raw.githubusercontent.com/rafgim2/ARCapitals/main/acierto.wav" preload="auto"></audio>
     <audio id="errorSound" src="https://raw.githubusercontent.com/rafgim2/ARCapitals/main/error.wav" preload="auto"></audio>
     <audio id="timerSound" src="https://raw.githubusercontent.com/rafgim2/ARCapitals/main/timer7.mp3" preload="auto"></audio>
-    <!-- beepSound usa el mismo archivo que errorSound en este proyecto -->
+    <!-- En este proyecto, beepSound usa el mismo archivo que errorSound -->
     <audio id="beepSound" src="https://raw.githubusercontent.com/rafgim2/ARCapitals/main/error.wav" preload="auto"></audio>
 
     <script type="module">
@@ -121,6 +121,7 @@
         appId: "1:408825932019:web:10f2079b590b4c9ca3af86",
         measurementId: "G-S78TM6PVRL"
       };
+
       const appFirebase = initializeApp(firebaseConfig);
       const analytics = getAnalytics(appFirebase);
       const db = getFirestore(appFirebase);
@@ -165,7 +166,7 @@
       import * as THREE from 'https://cdn.jsdelivr.net/npm/three@0.138.0/build/three.module.js';
       import { ARButton } from 'https://cdn.jsdelivr.net/npm/three@0.138.0/examples/jsm/webxr/ARButton.js';
 
-      // Variables globales del juego (AR)
+      // Variables globales AR
       let camera, scene, renderer;
       let questionMesh = null;
       let answers = [];
@@ -198,7 +199,7 @@
       const pageSize = 10;
       let playerPosition = null;
       let leaderboardMesh = null, restartButtonMesh = null, scrollUpButtonMesh = null, scrollDownButtonMesh = null;
-      // Cronómetro y nombre del jugador
+      // Cronómetro y nombre
       let gameStartTime = 0;
       let playerName = "";
 
@@ -253,6 +254,10 @@
 
       /***** Funciones AR: Pregunta, respuestas y posicionamiento *****/
       function initAR() {
+        // Reutilizamos el overlay ya creado en DOMContentLoaded
+        const overlay = document.getElementById('overlay');
+        // (No se crea de nuevo el overlay para conservar el top 3 preview)
+
         scene = new THREE.Scene();
         camera = new THREE.PerspectiveCamera(70, window.innerWidth / window.innerHeight, 0.01, 20);
         renderer = new THREE.WebGLRenderer({ antialias: true, alpha: true });
@@ -267,36 +272,7 @@
 
         window.addEventListener('resize', onWindowResize);
 
-        // Overlay inicial (se mostrará hasta iniciar AR)
-        const overlay = document.createElement('div');
-        overlay.id = 'overlay';
-        overlay.innerHTML = `
-          <img src="ARCapitals2.jpeg" alt="ARCapitals" style="margin-bottom:20px;">
-          <a href="https://www.youtube.com/@rafgim" target="_blank">© By Rafael Gimeno</a>
-          <div class="respuestas-container">
-            <label for="numAnswers">Respuestas:</label>
-            <select id="numAnswers">
-              <option value="4">4</option>
-              <option value="5">5</option>
-              <option value="6">6</option>
-              <option value="7">7</option>
-              <option value="8">8</option>
-              <option value="9">9</option>
-              <option value="10">10</option>
-            </select>
-          </div>
-          <div id="leaderboardPreview"></div>
-          <input type="text" id="playerName" placeholder="Ingresa tu nombre" style="padding:10px; font-size:16px; margin-bottom:20px;" maxlength="10">
-        `;
-        document.body.appendChild(overlay);
-        // Actualizar leaderboard preview
-        document.getElementById('numAnswers').addEventListener('change', () => {
-          const num = parseInt(document.getElementById('numAnswers').value) || 4;
-          updateLeaderboardPreview(num);
-        });
-        updateLeaderboardPreview(4);
-
-        // Creamos el botón AR y lo posicionamos en la parte inferior central
+        // Se añade el botón AR (al overlay ya existente)
         const arButton = ARButton.createButton(renderer, { 
           requiredFeatures: ['hit-test'],
           optionalFeatures: ['hand-tracking']
@@ -312,7 +288,7 @@
         arButton.style.color = 'white';
         overlay.appendChild(arButton);
 
-        // Al iniciar la sesión AR, se recogen los valores y se crea la escena del juego
+        // Cuando inicie la sesión AR, se recogen los valores y se arranca el juego
         renderer.xr.addEventListener('sessionstart', () => {
           selectedNumAnswers = parseInt(document.getElementById('numAnswers').value) || 4;
           playerName = document.getElementById('playerName').value || "Jugador";
@@ -320,7 +296,7 @@
           camera.getWorldDirection(initialCameraDir);
           initialCameraDir.normalize();
           createAnswerObjects(selectedNumAnswers, true);
-          overlay.remove();
+          overlay.remove(); // Se remueve el overlay para ver la escena AR
           generateQuestion();
           createScoreDisplay();
           gameReady = true;
@@ -333,13 +309,12 @@
         renderer.setSize(window.innerWidth, window.innerHeight);
       }
 
-      // Función para crear los paneles de respuesta en AR
+      // Función para crear paneles de respuesta en AR
       function createAnswerObjects(numAnswers, initialCreation) {
         if (initialCreation) {
           const radius = 0.8;
           const angleStart = -Math.PI/4;
           const angleEnd = Math.PI/4;
-          // Creamos paneles de placeholder
           for (let i = 0; i < numAnswers; i++) {
             const canvas = document.createElement('canvas');
             canvas.width = 256 * resolutionFactor;
@@ -359,20 +334,19 @@
             const material = new THREE.MeshBasicMaterial({ map: texture, side: THREE.DoubleSide, transparent: true });
             const geometry = new THREE.PlaneGeometry(0.15, 0.15);
             const mesh = new THREE.Mesh(geometry, material);
-            const angle = angleStart + (angleEnd - angleStart) * (i / (numAnswers - 1));
+            const angle = -Math.PI/4 + (Math.PI/2) * (i / (numAnswers - 1));
             mesh.position.set(
               radius * Math.sin(angle),
               0,
               -radius * Math.cos(angle)
             );
-            // Orientamos hacia la posición inicial de la cámara
             mesh.lookAt(initialCameraPos);
             mesh.userData.answer = "";
             answers.push(mesh);
             scene.add(mesh);
           }
         } else {
-          // Generamos el array de respuestas: una correcta y los incorrectos
+          // Generar array de respuestas: una correcta y las incorrectas
           const wrongSet = new Set();
           while (wrongSet.size < (selectedNumAnswers - 1)) {
             const rnd = Math.floor(Math.random() * countries.length);
@@ -384,7 +358,7 @@
           for (let i = 0; i < selectedNumAnswers; i++) {
             updateAnswerPanel(answers[i], arr[i]);
           }
-          // Reposicionamiento uniforme
+          // Reposicionar de forma uniforme
           const radius = 0.8;
           const uniformGap = 0.1;
           let alphas = [];
@@ -413,7 +387,7 @@
         }
       }
 
-      // Actualiza el panel de respuesta (AR) adaptándolo al texto
+      // Función para actualizar el panel de respuesta (AR) adaptándolo al texto
       function updateAnswerPanel(mesh, value) {
         const tmpCanvas = document.createElement('canvas');
         const tmpCtx = tmpCanvas.getContext('2d');
@@ -448,7 +422,7 @@
         mesh.userData.answer = value;
       }
 
-      // Actualiza el panel de la pregunta (AR)
+      // Función para actualizar el panel de la pregunta (AR)
       function updateQuestionPanel() {
         const tmpCanvas = document.createElement('canvas');
         const tmpCtx = tmpCanvas.getContext('2d');
@@ -484,7 +458,7 @@
         scene.add(questionMesh);
       }
 
-      // Array de países y capitales (puedes completar el array según necesites)
+      // Array de países y capitales (completo o parcial)
        const countries = [
         { country: "Afganistán", capital: "Kabul" },
         { country: "Albania", capital: "Tirana" },
@@ -778,7 +752,7 @@
         });
       }
 
-      /***** Función para reproducir sonidos clonados *****/
+      /***** Función para reproducir sonidos clonados (AR) *****/
       function playSound(id) {
         const el = document.getElementById(id);
         if (el) {
@@ -837,7 +811,7 @@
             endGame();
           }
         }
-        // Detección de colisiones (usando XR input o posición de cámara)
+        // Detección de colisiones (XR input o posición de cámara)
         const session = renderer.xr.getSession();
         let interactionPoints = [];
         if (session && xrFrame) {
@@ -972,7 +946,7 @@
         timerSound.play().catch(e => {});
       }
 
-      /***** Funciones de leaderboard final *****/
+      /***** Funciones de leaderboard final (AR) *****/
       async function endGame() {
         gameOver = true;
         if (questionMesh) scene.remove(questionMesh);
@@ -1121,7 +1095,7 @@
         scrollDownButtonMesh.position.set(-planeWidth * 0.5 - 0.1, -planeHeight * 0.35, -1.1);
       }
 
-      /***** Funciones de desbloqueo de audio y detección táctil en AR *****/
+      /***** Desbloqueo de audio y detección táctil en AR *****/
       window.addEventListener('touchstart', function unlockAudio() {
         const s1 = document.getElementById('successSound');
         const s2 = document.getElementById('errorSound');
@@ -1210,7 +1184,7 @@
 
       /***** Lanzar AR: Inicialización y animación *****/
       window.addEventListener('DOMContentLoaded', async () => {
-        // Creamos el overlay
+        // Crear overlay (único)
         const overlay = document.createElement('div');
         overlay.id = 'overlay';
         overlay.innerHTML = `
@@ -1251,7 +1225,7 @@
           // Si AR es soportado, iniciamos el modo AR
           initAR();
         } else {
-          // Si no, mostramos un botón "Iniciar Juego" para el modo HTML
+          // Si no, se muestra un botón "Iniciar Juego" para el modo HTML
           const startBtn = document.createElement('button');
           startBtn.style.fontSize = '16px';
           startBtn.style.padding = '10px 20px';
@@ -1276,7 +1250,7 @@
       });
       animate();
 
-      /***** Versión HTML *****/
+      /***** Versión HTML para dispositivos no compatibles *****/
       function initHTML() {
         const gameContainer = document.createElement('div');
         gameContainer.id = 'gameContainer';
