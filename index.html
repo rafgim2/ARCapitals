@@ -112,10 +112,6 @@
         padding: 4px;
         text-align: center;
       }
-       button, input {
-        -webkit-appearance: none;
-        border-radius: 6px;
-      }
     </style>
   </head>
   <body>
@@ -1460,63 +1456,75 @@
       }
 
       /***** 5) Inicio: Comprobación de soporte AR y elección de modo *****/
+      function fallbackToHTML() {
+        // Función para iniciar el modo HTML en caso de no disponer de AR
+        const overlay = document.createElement('div');
+        overlay.id = 'overlay';
+        overlay.innerHTML = `
+          <img src="ARCapitals2.jpeg" alt="ARCapitals" style="margin-bottom:20px;">
+          <a href="https://www.youtube.com/@rafgim" target="_blank">© By Rafael Gimeno</a>
+          <div class="respuestas-container">
+            <label for="numAnswers">Respuestas:</label>
+            <select id="numAnswers">
+              <option value="4">4</option>
+              <option value="5">5</option>
+              <option value="6">6</option>
+              <option value="7">7</option>
+              <option value="8">8</option>
+              <option value="9">9</option>
+              <option value="10">10</option>
+            </select>
+          </div>
+          <div id="leaderboardPreview"></div>
+          <input type="text" id="playerName" placeholder="Ingresa tu nombre" style="padding:10px; font-size:16px; margin-bottom:20px;" maxlength="10">
+        `;
+        document.body.appendChild(overlay);
+        document.getElementById('numAnswers').addEventListener('change', () => {
+          const num = parseInt(document.getElementById('numAnswers').value) || 4;
+          updateLeaderboardPreview(num);
+        });
+        updateLeaderboardPreview(4);
+        selectedNumAnswers = parseInt(document.getElementById('numAnswers').value) || 4;
+        // Leer el nombre del jugador antes de quitar el overlay
+        playerName = document.getElementById('playerName').value || "Jugador";
+        const startBtn = document.createElement('button');
+        startBtn.innerText = "AR no compatible, Iniciar Juego HTML";
+        startBtn.style.fontSize = "16px";
+        startBtn.style.padding = "10px 20px";
+        startBtn.style.marginTop = "20px";
+        startBtn.onclick = () => {
+          // Capturamos el nombre antes de eliminar el overlay
+          playerName = document.getElementById('playerName').value || "Jugador";
+          overlay.remove();
+          initHTML();
+        };
+        overlay.appendChild(startBtn);
+      }
+
       window.addEventListener('DOMContentLoaded', async () => {
         // Comprobar soporte AR
-        let arSupported = false;
         if(navigator.xr) {
           try {
-            arSupported = await navigator.xr.isSessionSupported('immersive-ar');
+            const supported = await navigator.xr.isSessionSupported('immersive-ar');
+            if(supported) {
+              // Intentar iniciar la sesión AR para asegurarnos de que el dispositivo es compatible (por ejemplo, con ARCore)
+              navigator.xr.requestSession('immersive-ar').then((session) => {
+                // Si la sesión se inicia, asignamos la sesión y continuamos en modo AR
+                renderer.xr.setSession(session);
+                init();
+                animate();
+              }).catch((err) => {
+                // Si falla iniciar la sesión, caemos a la versión HTML
+                fallbackToHTML();
+              });
+            } else {
+              fallbackToHTML();
+            }
           } catch(e) {
-            arSupported = false;
+            fallbackToHTML();
           }
-        }
-        if(arSupported) {
-          // Iniciar modo AR
-          init();
-          animate();
         } else {
-          // Si AR no es soportado, mostrar overlay con botón para HTML
-          const overlay = document.createElement('div');
-          overlay.id = 'overlay';
-          overlay.innerHTML = `
-            <img src="ARCapitals2.jpeg" alt="ARCapitals" style="margin-bottom:20px;">
-            <a href="https://www.youtube.com/@rafgim" target="_blank">© By Rafael Gimeno</a>
-            <div class="respuestas-container">
-              <label for="numAnswers">Respuestas:</label>
-              <select id="numAnswers">
-                <option value="4">4</option>
-                <option value="5">5</option>
-                <option value="6">6</option>
-                <option value="7">7</option>
-                <option value="8">8</option>
-                <option value="9">9</option>
-                <option value="10">10</option>
-              </select>
-            </div>
-            <div id="leaderboardPreview"></div>
-            <input type="text" id="playerName" placeholder="Ingresa tu nombre" style="padding:10px; font-size:16px; margin-bottom:20px;" maxlength="10">
-          `;
-          document.body.appendChild(overlay);
-          document.getElementById('numAnswers').addEventListener('change', () => {
-            const num = parseInt(document.getElementById('numAnswers').value) || 4;
-            updateLeaderboardPreview(num);
-          });
-          updateLeaderboardPreview(4);
-          selectedNumAnswers = parseInt(document.getElementById('numAnswers').value) || 4;
-          // Leer el nombre del jugador antes de quitar el overlay
-          playerName = document.getElementById('playerName').value || "Jugador";
-          const startBtn = document.createElement('button');
-          startBtn.innerText = "AR no compatible, Iniciar Juego HTML";
-          startBtn.style.fontSize = "16px";
-          startBtn.style.padding = "10px 20px";
-          startBtn.style.marginTop = "20px";
-          startBtn.onclick = () => {
-            // Capturamos el nombre antes de eliminar el overlay
-            playerName = document.getElementById('playerName').value || "Jugador";
-            overlay.remove();
-            initHTML();
-          };
-          overlay.appendChild(startBtn);
+          fallbackToHTML();
         }
         // Desbloquear audio en primer toque
         window.addEventListener('touchstart', function unlockAudio() {
