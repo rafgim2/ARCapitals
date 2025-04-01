@@ -334,7 +334,7 @@
 
         renderer.xr.addEventListener('sessionstart', () => {
           selectedNumAnswers = parseInt(document.getElementById('numAnswers').value) || 4;
-          // Se lee el nombre del jugador desde el overlay
+          // Leer el nombre del jugador desde el overlay antes de eliminarlo
           playerName = document.getElementById('playerName').value || "Jugador";
           camera.getWorldPosition(initialCameraPos);
           camera.getWorldDirection(initialCameraDir);
@@ -1034,10 +1034,10 @@
         restartButtonMesh.position.set(0, -0.8, -1.1);
         scene.add(restartButtonMesh);
         scrollUpButtonMesh = createButton("▲", 0.1, 0.1);
-        scrollUpButtonMesh.position.set(-0.6, 0.5, -1.1);
+        scrollUpButtonMesh.position.set(-planeWidth * 0.5 - 0.1, planeHeight * 0.35, -1.1);
         scene.add(scrollUpButtonMesh);
         scrollDownButtonMesh = createButton("▼", 0.1, 0.1);
-        scrollDownButtonMesh.position.set(-0.6, -0.4, -1.1);
+        scrollDownButtonMesh.position.set(-planeWidth * 0.5 - 0.1, -planeHeight * 0.35, -1.1);
         scene.add(scrollDownButtonMesh);
       }
       function drawLeaderboardSegment() {
@@ -1185,7 +1185,7 @@
         correctResponseTimes = [];
         gameStartTime = performance.now();
         // En modo HTML ya se leyó el nombre del jugador antes de quitar el overlay,
-        // por lo que no se vuelve a leer desde el input.
+        // por lo que usamos el valor que ya quedó almacenado en la variable global "playerName".
         startHTMLCountdown();
         const timerSound = document.getElementById('timerSound');
         timerSound.loop = false;
@@ -1428,6 +1428,8 @@
           startBtn.style.padding = "10px 20px";
           startBtn.style.marginTop = "20px";
           startBtn.onclick = () => {
+            // Capturamos el nombre antes de eliminar el overlay
+            playerName = document.getElementById('playerName').value || "Jugador";
             overlay.remove();
             initHTML();
           };
