@@ -1502,16 +1502,15 @@
             updateLeaderboardPreview(num);
           });
           updateLeaderboardPreview(4);
-          selectedNumAnswers = parseInt(document.getElementById('numAnswers').value) || 4;
-          // Leer el nombre del jugador antes de quitar el overlay
-          playerName = document.getElementById('playerName').value || "Jugador";
+          // Al iniciar el juego HTML actualizamos selectedNumAnswers leyendo el valor actual del select
           const startBtn = document.createElement('button');
           startBtn.innerText = "AR no compatible, Iniciar Juego HTML";
           startBtn.style.fontSize = "16px";
           startBtn.style.padding = "10px 20px";
           startBtn.style.marginTop = "20px";
           startBtn.onclick = () => {
-            // Capturamos el nombre antes de eliminar el overlay
+            // Actualizamos selectedNumAnswers y el nombre del jugador antes de eliminar el overlay
+            selectedNumAnswers = parseInt(document.getElementById('numAnswers').value) || 4;
             playerName = document.getElementById('playerName').value || "Jugador";
             overlay.remove();
             initHTML();
