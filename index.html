@@ -1126,92 +1126,6 @@
         timerSound.play().catch(e => {});
       }
 
-      window.addEventListener('touchstart', function unlockAudio() {
-        const s1 = document.getElementById('successSound');
-        const s2 = document.getElementById('errorSound');
-        [s1, s2].forEach(a => {
-          a.play().then(() => {
-            a.pause();
-            a.currentTime = 0;
-          }).catch(e => {});
-        });
-      }, { once: true });
-
-      window.addEventListener('touchstart', function(event) {
-        if (!/Mobi|Android/i.test(navigator.userAgent)) return;
-        const touch = event.touches[0];
-        const x = (touch.clientX / window.innerWidth) * 2 - 1;
-        const y = -(touch.clientY / window.innerHeight) * 2 + 1;
-        const mouseVector = new THREE.Vector2(x, y);
-        const raycaster = new THREE.Raycaster();
-        raycaster.setFromCamera(mouseVector, camera);
-        let objectsToIntersect = [];
-        if (!gameOver) {
-          objectsToIntersect = answers;
-        } else {
-          let finalButtons = [];
-          if (restartButtonMesh) finalButtons.push(restartButtonMesh);
-          if (scrollUpButtonMesh) finalButtons.push(scrollUpButtonMesh);
-          if (scrollDownButtonMesh) finalButtons.push(scrollDownButtonMesh);
-          objectsToIntersect = finalButtons;
-        }
-        const intersects = raycaster.intersectObjects(objectsToIntersect);
-        if (intersects.length > 0 && !hasCollided) {
-          const objHit = intersects[0].object;
-          hasCollided = true;
-          if (!gameOver) {
-            if (objHit.userData.answer === correctAnswer) {
-              let responseTime = performance.now() - currentQuestionStartTime;
-              correctResponseTimes.push(responseTime);
-              correctCount++;
-              playSound('successSound');
-              createSparksEffect(objHit.position);
-              if (questionMesh) questionMesh.visible = false;
-              answers.forEach(a => a.visible = false);
-              setTimeout(() => {
-                if (!gameOver) {
-                  generateQuestion();
-                  if (questionMesh) questionMesh.visible = true;
-                  answers.forEach(a => a.visible = true);
-                }
-                hasCollided = false;
-              }, 1000);
-            } else {
-              wrongCount++;
-              playSound('errorSound');
-              answers.forEach(a => a.material.color.set(0xff0000));
-              setTimeout(() => {
-                answers.forEach(a => a.material.color.set(0xffffff));
-                hasCollided = false;
-              }, 500);
-            }
-          } else {
-            if (objHit === restartButtonMesh) {
-              playSound('successSound');
-              createSparksEffect(objHit.position);
-              objHit.visible = false;
-              setTimeout(() => {
-                restartGame();
-                hasCollided = false;
-              }, 1000);
-            } else if (objHit === scrollUpButtonMesh) {
-              scoreboardStartIndex -= pageSize;
-              if (scoreboardStartIndex < 0) scoreboardStartIndex = 0;
-              drawLeaderboardSegment();
-              setTimeout(() => { hasCollided = false; }, 500);
-            } else if (objHit === scrollDownButtonMesh) {
-              scoreboardStartIndex += pageSize;
-              if (scoreboardStartIndex >= leaderboardResults.length) {
-                scoreboardStartIndex = leaderboardResults.length - pageSize;
-                if (scoreboardStartIndex < 0) scoreboardStartIndex = 0;
-              }
-              drawLeaderboardSegment();
-              setTimeout(() => { hasCollided = false; }, 500);
-            }
-          }
-        }
-      }, false);
-
       /***** 4) Funciones para el modo HTML (no AR) *****/
       function initHTML() {
         // Crear contenedor HTML para el juego
@@ -1269,7 +1183,9 @@
         gameOver = false;
         correctResponseTimes = [];
         gameStartTime = performance.now();
-        playerName = document.getElementById('playerName').value || "Jugador";
+        // Si el input de playerName no existe (overlay eliminado), asigna "Jugador"
+        const pnElement = document.getElementById('playerName');
+        playerName = pnElement ? pnElement.value : "Jugador";
         startHTMLCountdown();
         const timerSound = document.getElementById('timerSound');
         timerSound.loop = false;
@@ -1313,6 +1229,8 @@
         array.forEach(ans => {
           const btn = document.createElement('button');
           btn.innerText = ans;
+          btn.style.fontSize = '24px';
+          btn.style.padding = '10px 20px';
           btn.onclick = () => handleHTMLAnswer(ans, btn);
           answersDiv.appendChild(btn);
         });
@@ -1415,6 +1333,8 @@
         const gameContainer = document.getElementById('gameContainer');
         const restartBtn = document.createElement('button');
         restartBtn.innerText = "Reiniciar";
+        restartBtn.style.fontSize = '24px';
+        restartBtn.style.padding = '10px 20px';
         restartBtn.onclick = ()=>{
           restartBtn.remove();
           document.getElementById('leaderboard').innerHTML = '';
@@ -1472,7 +1392,7 @@
           init();
           animate();
         } else {
-          // Si AR no es soportado, agregar botón para iniciar el juego HTML
+          // Si AR no es soportado, mostrar overlay con botón para HTML
           const overlay = document.createElement('div');
           overlay.id = 'overlay';
           overlay.innerHTML = `
