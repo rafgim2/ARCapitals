@@ -270,6 +270,85 @@
         return new THREE.Mesh(geometry, material);
       }
 
+      // Función para detectar toques en AR (para móviles)
+      function onTouchStartAR(event) {
+        // Solo se procesa si estamos en un móvil
+        if (!/Mobi|Android/i.test(navigator.userAgent)) return;
+        const touch = event.touches[0];
+        const x = (touch.clientX / window.innerWidth) * 2 - 1;
+        const y = -(touch.clientY / window.innerHeight) * 2 + 1;
+        const mouseVector = new THREE.Vector2(x, y);
+        const raycaster = new THREE.Raycaster();
+        raycaster.setFromCamera(mouseVector, camera);
+        let objectsToIntersect = [];
+        if (!gameOver) {
+          objectsToIntersect = answers;
+        } else {
+          let finalButtons = [];
+          if (restartButtonMesh) finalButtons.push(restartButtonMesh);
+          if (scrollUpButtonMesh) finalButtons.push(scrollUpButtonMesh);
+          if (scrollDownButtonMesh) finalButtons.push(scrollDownButtonMesh);
+          objectsToIntersect = finalButtons;
+        }
+        const intersects = raycaster.intersectObjects(objectsToIntersect);
+        if (intersects.length > 0 && !hasCollided) {
+          const objHit = intersects[0].object;
+          hasCollided = true;
+          if (!gameOver) {
+            if (objHit.userData.answer === correctAnswer) {
+              let responseTime = performance.now() - currentQuestionStartTime;
+              correctResponseTimes.push(responseTime);
+              correctCount++;
+              playSound('successSound');
+              createSparksEffect(objHit.position);
+              if (questionMesh) questionMesh.visible = false;
+              answers.forEach(a => a.visible = false);
+              setTimeout(() => {
+                if (!gameOver) {
+                  generateQuestion();
+                  if (questionMesh) questionMesh.visible = true;
+                  answers.forEach(a => a.visible = true);
+                }
+                hasCollided = false;
+              }, 1000);
+            } else {
+              wrongCount++;
+              playSound('errorSound');
+              answers.forEach(a => a.material.color.set(0xff0000));
+              setTimeout(() => {
+                answers.forEach(a => a.material.color.set(0xffffff));
+                hasCollided = false;
+              }, 500);
+            }
+          } else {
+            if (objHit === restartButtonMesh) {
+              playSound('successSound');
+              createSparksEffect(objHit.position);
+              objHit.visible = false;
+              setTimeout(() => {
+                restartGame();
+                hasCollided = false;
+              }, 1000);
+            } else if (objHit === scrollUpButtonMesh) {
+              scoreboardStartIndex -= pageSize;
+              if (scoreboardStartIndex < 0) scoreboardStartIndex = 0;
+              drawLeaderboardSegment();
+              setTimeout(() => { hasCollided = false; }, 500);
+            } else if (objHit === scrollDownButtonMesh) {
+              scoreboardStartIndex += pageSize;
+              if (scoreboardStartIndex >= leaderboardResults.length) {
+                scoreboardStartIndex = leaderboardResults.length - pageSize;
+                if (scoreboardStartIndex < 0) scoreboardStartIndex = 0;
+              }
+              drawLeaderboardSegment();
+              setTimeout(() => { hasCollided = false; }, 500);
+            }
+          }
+        }
+      }
+      // Se añade el listener para toques en AR
+      window.addEventListener('touchstart', onTouchStartAR, false);
+
       function init() {
         scene = new THREE.Scene();
         camera = new THREE.PerspectiveCamera(70, window.innerWidth / window.innerHeight, 0.01, 20);
