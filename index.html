@@ -334,6 +334,7 @@
 
         renderer.xr.addEventListener('sessionstart', () => {
           selectedNumAnswers = parseInt(document.getElementById('numAnswers').value) || 4;
+          // Se lee el nombre del jugador desde el overlay
           playerName = document.getElementById('playerName').value || "Jugador";
           camera.getWorldPosition(initialCameraPos);
           camera.getWorldDirection(initialCameraDir);
@@ -1183,9 +1184,8 @@
         gameOver = false;
         correctResponseTimes = [];
         gameStartTime = performance.now();
-        // Si el input de playerName no existe (overlay eliminado), asigna "Jugador"
-        const pnElement = document.getElementById('playerName');
-        playerName = pnElement ? pnElement.value : "Jugador";
+        // En modo HTML ya se leyó el nombre del jugador antes de quitar el overlay,
+        // por lo que no se vuelve a leer desde el input.
         startHTMLCountdown();
         const timerSound = document.getElementById('timerSound');
         timerSound.loop = false;
@@ -1420,6 +1420,7 @@
           });
           updateLeaderboardPreview(4);
           selectedNumAnswers = parseInt(document.getElementById('numAnswers').value) || 4;
+          // Leer el nombre del jugador antes de quitar el overlay
           playerName = document.getElementById('playerName').value || "Jugador";
           const startBtn = document.createElement('button');
           startBtn.innerText = "AR no compatible, Iniciar Juego HTML";
