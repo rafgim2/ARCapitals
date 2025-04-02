@@ -1431,14 +1431,8 @@
       function displayHTMLLeaderboard(leaderboardResults, finalScore) {
   const leaderboardDiv = document.getElementById('leaderboard');
   leaderboardDiv.innerHTML = '';
-  // Ajusta el contenedor para que se adapte al contenido
-  leaderboardDiv.style.display = "inline-block";
-  leaderboardDiv.style.width = "auto";
-  
   const table = document.createElement('table');
-  table.style.width = "auto"; // La tabla se ajustará a su contenido
-  table.style.margin = "auto"; // Opcional: centra la tabla dentro del contenedor
-  
+  table.style.width = "100px"; // Ancho fijo de la tabla
   const headerRow = document.createElement('tr');
   ['Pos', 'Nombre', 'Puntos'].forEach(header => {
     const th = document.createElement('th');
@@ -1446,7 +1440,6 @@
     headerRow.appendChild(th);
   });
   table.appendChild(headerRow);
-  
   leaderboardResults.forEach((data, index) => {
     const row = document.createElement('tr');
     if (data.name === playerName && data.score === finalScore) {
@@ -1464,9 +1457,9 @@
     row.appendChild(scoreCell);
     table.appendChild(row);
   });
-  
   leaderboardDiv.appendChild(table);
 }
+
 
 
 
