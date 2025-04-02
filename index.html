@@ -86,7 +86,7 @@
       #gameContainer {
         position: relative;
         width: 100%;
-        height: 100vh;
+        min-height: 100vh;
         background-color: #f0f0f0;
         color: #000;
         display: flex;
@@ -1246,7 +1246,7 @@
         // Leaderboard
         const leaderboardDiv = document.createElement('div');
         leaderboardDiv.id = 'leaderboard';
-        leaderboardDiv.style.maxWidth = "80%";
+        leaderboardDiv.style.maxWidth = "auto";
         leaderboardDiv.style.maxHeight = "120px";
         leaderboardDiv.style.overflowY = "auto";
         leaderboardDiv.style.backgroundColor = "#fff";
