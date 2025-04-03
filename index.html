@@ -385,7 +385,7 @@
           optionalFeatures: ['hand-tracking']
         });
         arButton.style.position = 'absolute';
-        arButton.style.top = '650px';
+        arButton.style.top = '625px';
         arButton.style.left = '100%';
         arButton.style.transform = 'translateX(0%)';
         arButton.style.width = '150px';
@@ -400,7 +400,7 @@
         htmlButton.innerText = "Iniciar versión HTML";
         htmlButton.style.fontSize = '16px';
         htmlButton.style.padding = '10px 20px';
-        htmlButton.style.marginTop = '10px';
+        htmlButton.style.marginTop = '0px';
         htmlButton.onclick = () => {
           selectedNumAnswers = parseInt(document.getElementById('numAnswers').value) || 4;
           playerName = document.getElementById('playerName').value || "Jugador";
@@ -1455,7 +1455,7 @@
           const overlay = document.createElement('div');
           overlay.id = 'overlay';
           overlay.innerHTML = `
-            <img src="ARCapitals2.jpeg" alt="ARCapitals" style="margin-bottom:20px; margin-top:10px;">
+            <img src="ARCapitals2.jpeg" alt="ARCapitals" style="margin-bottom:10px; margin-top:10px;">
             <a href="https://www.youtube.com/@rafgim" target="_blank">© By Rafael Gimeno</a>
             <div class="respuestas-container">
               <label for="numAnswers">Respuestas:</label>
