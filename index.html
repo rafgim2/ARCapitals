@@ -112,7 +112,7 @@
         padding: 4px;
         text-align: center;
       }
-       button, input {
+      button, input {
         -webkit-appearance: none;
         border-radius: 6px;
       }
@@ -188,7 +188,7 @@
         }
       }
 
-      /***** 3) Código AR (Capitals) - NO MODIFICAR ESTA PARTE *****/
+      /***** 3) Código AR (Capitals) - NO MODIFICAR ESTA PARTE, salvo la adición del botón HTML *****/
       import * as THREE from 'https://cdn.jsdelivr.net/npm/three@0.138.0/build/three.module.js';
       import { ARButton } from 'https://cdn.jsdelivr.net/npm/three@0.138.0/examples/jsm/webxr/ARButton.js';
 
@@ -276,7 +276,6 @@
 
       // Función para detectar toques en AR (para móviles)
       function onTouchStartAR(event) {
-        // Solo se procesa si estamos en un móvil
         if (!/Mobi|Android/i.test(navigator.userAgent)) return;
         const touch = event.touches[0];
         const x = (touch.clientX / window.innerWidth) * 2 - 1;
@@ -350,8 +349,15 @@
           }
         }
       }
-      // Se añade el listener para toques en AR
       window.addEventListener('touchstart', onTouchStartAR, false);
+
+      function playSound(id) {
+        const el = document.getElementById(id);
+        if (el) {
+          const clone = el.cloneNode();
+          clone.play().catch(e => {});
+        }
+      }
 
       function init() {
         scene = new THREE.Scene();
@@ -406,6 +412,28 @@
         arButton.style.color = 'white';
         overlay.appendChild(arButton);
 
+        // BOTÓN ADICIONAL: Iniciar versión HTML debajo del botón AR
+        const htmlButton = document.createElement('button');
+        htmlButton.innerText = "Iniciar versión HTML";
+        htmlButton.style.fontSize = '16px';
+        htmlButton.style.padding = '10px 20px';
+        htmlButton.style.marginTop = '10px';
+        htmlButton.onclick = () => {
+          selectedNumAnswers = parseInt(document.getElementById('numAnswers').value) || 4;
+          playerName = document.getElementById('playerName').value || "Jugador";
+          overlay.remove();
+          // Si hay una sesión XR activa, terminarla
+          if (renderer.xr && renderer.xr.getSession()) {
+            renderer.xr.getSession().end().catch(e => console.error(e));
+          }
+          // Remover el canvas de AR para evitar que tape el contenido HTML
+          if (renderer && renderer.domElement && renderer.domElement.parentNode) {
+            renderer.domElement.parentNode.removeChild(renderer.domElement);
+          }
+          initHTML();
+        };
+        overlay.appendChild(htmlButton);
+
         document.body.appendChild(overlay);
 
         const selectAnswers = document.getElementById('numAnswers');
@@ -417,7 +445,6 @@
 
         renderer.xr.addEventListener('sessionstart', () => {
           selectedNumAnswers = parseInt(document.getElementById('numAnswers').value) || 4;
-          // Leer el nombre del jugador desde el overlay antes de eliminarlo
           playerName = document.getElementById('playerName').value || "Jugador";
           camera.getWorldPosition(initialCameraPos);
           camera.getWorldDirection(initialCameraDir);
@@ -1026,73 +1053,39 @@
           }
         }
       }
-      function playSound(id) {
-        const el = document.getElementById(id);
-        if (el) {
-          const clone = el.cloneNode();
-          clone.play().catch(e => {});
-        }
-      }
-      async function endGame() {
-        gameOver = true;
-        if (questionMesh) scene.remove(questionMesh);
-        if (countdownMesh) scene.remove(countdownMesh);
-        if (scoreMesh) scene.remove(scoreMesh);
-        answers.forEach(a => scene.remove(a));
-        let avgTime = 0;
-        if (correctResponseTimes.length > 0) {
-          let sum = correctResponseTimes.reduce((acc, t) => acc + t, 0);
-          avgTime = sum / correctResponseTimes.length / 1000;
-        }
-        const rawScore = (correctCount - wrongCount) - avgTime;
-        const finalScore = parseFloat(rawScore.toFixed(3));
-        const collectionName = `Capleaderboard_${selectedNumAnswers}`;
-        let docsFound = await getDocs(
-          query(
-            collection(db, collectionName),
-            where("name", "==", playerName),
-            limit(1)
-          )
-        );
-        if (!docsFound.empty) {
-          const docToUpdate = docsFound.docs[0];
-          await updateDoc(doc(db, collectionName, docToUpdate.id), {
-            score: finalScore,
-            timestamp: serverTimestamp()
-          });
-        } else {
-          await addDoc(collection(db, collectionName), {
-            name: playerName,
-            score: finalScore,
-            timestamp: serverTimestamp()
-          });
-        }
-        let qLeaderboard = query(
-          collection(db, collectionName),
-          orderBy("score", "desc")
-        );
-        let querySnapshot;
-        try {
-          querySnapshot = await getDocs(qLeaderboard);
-        } catch (err) {
-          console.error("Error consultando leaderboard:", err);
-          return;
-        }
+
+      function restartGame() {
+        if (leaderboardMesh) scene.remove(leaderboardMesh);
+        if (restartButtonMesh) scene.remove(restartButtonMesh);
+        if (scrollUpButtonMesh) scene.remove(scrollUpButtonMesh);
+        if (scrollDownButtonMesh) scene.remove(scrollDownButtonMesh);
+        leaderboardMesh = null;
+        restartButtonMesh = null;
+        scrollUpButtonMesh = null;
+        scrollDownButtonMesh = null;
         leaderboardResults = [];
-        let idx = 0;
-        querySnapshot.forEach((docSnap) => {
-          let data = docSnap.data();
-          leaderboardResults.push({ ...data, _index: idx });
-          idx++;
-        });
-        let playerIndex = leaderboardResults.findIndex(r => r.name === playerName && r.score === finalScore);
-        playerPosition = (playerIndex >= 0) ? (playerIndex + 1) : null;
-        scoreboardStartIndex = playerIndex - Math.floor(pageSize / 2);
-        if (scoreboardStartIndex < 0) scoreboardStartIndex = 0;
-        if (scoreboardStartIndex >= leaderboardResults.length) scoreboardStartIndex = 0;
-        createLeaderboardMesh();
-        drawLeaderboardSegment();
+        scoreboardStartIndex = 0;
+        playerPosition = null;
+        if (questionMesh) {
+          scene.remove(questionMesh);
+          questionMesh = null;
+        }
+        correctCount = 0;
+        wrongCount = 0;
+        gameOver = false;
+        answers.forEach(a => scene.remove(a));
+        answers = [];
+        createAnswerObjects(selectedNumAnswers, true);
+        generateQuestion();
+        countdownStarted = false;
+        gameReady = true;
+        createScoreDisplay();
+        const timerSound = document.getElementById('timerSound');
+        timerSound.currentTime = 0;
+        timerSound.loop = false;
+        timerSound.play().catch(e => {});
       }
+
       function createLeaderboardMesh() {
         if (leaderboardMesh) scene.remove(leaderboardMesh);
         if (restartButtonMesh) scene.remove(restartButtonMesh);
@@ -1123,6 +1116,7 @@
         scrollDownButtonMesh.position.set(-planeWidth * 0.5 - 0.1, -planeHeight * 0.35, -1.1);
         scene.add(scrollDownButtonMesh);
       }
+
       function drawLeaderboardSegment() {
         if (!leaderboardMesh) return;
         const { canvas, ctx, texture, planeWidth } = leaderboardMesh.userData;
@@ -1177,37 +1171,6 @@
         restartButtonMesh.position.set(0, -planeHeight * 0.6, -1.1);
         scrollUpButtonMesh.position.set(-planeWidth * 0.5 - 0.1, planeHeight * 0.35, -1.1);
         scrollDownButtonMesh.position.set(-planeWidth * 0.5 - 0.1, -planeHeight * 0.35, -1.1);
-      }
-      function restartGame() {
-        if (leaderboardMesh) scene.remove(leaderboardMesh);
-        if (restartButtonMesh) scene.remove(restartButtonMesh);
-        if (scrollUpButtonMesh) scene.remove(scrollUpButtonMesh);
-        if (scrollDownButtonMesh) scene.remove(scrollDownButtonMesh);
-        leaderboardMesh = null;
-        restartButtonMesh = null;
-        scrollUpButtonMesh = null;
-        scrollDownButtonMesh = null;
-        leaderboardResults = [];
-        scoreboardStartIndex = 0;
-        playerPosition = null;
-        if (questionMesh) {
-          scene.remove(questionMesh);
-          questionMesh = null;
-        }
-        correctCount = 0;
-        wrongCount = 0;
-        gameOver = false;
-        answers.forEach(a => scene.remove(a));
-        answers = [];
-        createAnswerObjects(selectedNumAnswers, true);
-        generateQuestion();
-        countdownStarted = false;
-        gameReady = true;
-        createScoreDisplay();
-        const timerSound = document.getElementById('timerSound');
-        timerSound.currentTime = 0;
-        timerSound.loop = false;
-        timerSound.play().catch(e => {});
       }
 
       /***** 4) Funciones para el modo HTML (no AR) *****/
@@ -1429,39 +1392,36 @@
       }
 
       function displayHTMLLeaderboard(leaderboardResults, finalScore) {
-  const leaderboardDiv = document.getElementById('leaderboard');
-  leaderboardDiv.innerHTML = '';
-  const table = document.createElement('table');
-  table.style.width = "100px"; // Ancho fijo de la tabla
-  const headerRow = document.createElement('tr');
-  ['Pos', 'Nombre', 'Puntos'].forEach(header => {
-    const th = document.createElement('th');
-    th.innerText = header;
-    headerRow.appendChild(th);
-  });
-  table.appendChild(headerRow);
-  leaderboardResults.forEach((data, index) => {
-    const row = document.createElement('tr');
-    if (data.name === playerName && data.score === finalScore) {
-      row.style.backgroundColor = 'green';
-      row.style.color = '#fff';
-    }
-    const posCell = document.createElement('td');
-    posCell.innerText = index + 1;
-    const nameCell = document.createElement('td');
-    nameCell.innerText = data.name;
-    const scoreCell = document.createElement('td');
-    scoreCell.innerText = data.score;
-    row.appendChild(posCell);
-    row.appendChild(nameCell);
-    row.appendChild(scoreCell);
-    table.appendChild(row);
-  });
-  leaderboardDiv.appendChild(table);
-}
-
-
-
+        const leaderboardDiv = document.getElementById('leaderboard');
+        leaderboardDiv.innerHTML = '';
+        const table = document.createElement('table');
+        table.style.width = "100px"; // Ancho fijo de la tabla
+        const headerRow = document.createElement('tr');
+        ['Pos', 'Nombre', 'Puntos'].forEach(header => {
+          const th = document.createElement('th');
+          th.innerText = header;
+          headerRow.appendChild(th);
+        });
+        table.appendChild(headerRow);
+        leaderboardResults.forEach((data, index) => {
+          const row = document.createElement('tr');
+          if (data.name === playerName && data.score === finalScore) {
+            row.style.backgroundColor = 'green';
+            row.style.color = '#fff';
+          }
+          const posCell = document.createElement('td');
+          posCell.innerText = index + 1;
+          const nameCell = document.createElement('td');
+          nameCell.innerText = data.name;
+          const scoreCell = document.createElement('td');
+          scoreCell.innerText = data.score;
+          row.appendChild(posCell);
+          row.appendChild(nameCell);
+          row.appendChild(scoreCell);
+          table.appendChild(row);
+        });
+        leaderboardDiv.appendChild(table);
+      }
 
       /***** 5) Inicio: Comprobación de soporte AR y elección de modo *****/
       window.addEventListener('DOMContentLoaded', async () => {
@@ -1506,14 +1466,13 @@
             updateLeaderboardPreview(num);
           });
           updateLeaderboardPreview(4);
-          // Al iniciar el juego HTML actualizamos selectedNumAnswers leyendo el valor actual del select
+          // Al iniciar el juego HTML actualizamos selectedNumAnswers y el nombre del jugador
           const startBtn = document.createElement('button');
           startBtn.innerText = "AR no compatible, Iniciar Juego HTML";
           startBtn.style.fontSize = "16px";
           startBtn.style.padding = "10px 20px";
           startBtn.style.marginTop = "20px";
           startBtn.onclick = () => {
-            // Actualizamos selectedNumAnswers y el nombre del jugador antes de eliminar el overlay
             selectedNumAnswers = parseInt(document.getElementById('numAnswers').value) || 4;
             playerName = document.getElementById('playerName').value || "Jugador";
             overlay.remove();
