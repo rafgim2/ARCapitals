@@ -1070,74 +1070,72 @@
 
       // Dibujar la tabla de clasificación centrada en la posición del jugador y mostrando 10 resultados como máximo
       function drawLeaderboardSegment() {
-  if (!leaderboardMesh) return;
-  const { canvas, ctx, texture, planeWidth } = leaderboardMesh.userData;
-  const headerHeight = 40 * resolutionFactor;
-  const rowHeight = 30 * resolutionFactor;
-  const total = leaderboardResults.length;
-  const displayCount = Math.min(10, total);
-  let playerIndex;
-  if (playerPosition !== null) {
-    playerIndex = playerPosition - 1;
-  } else {
-    playerIndex = Math.floor(displayCount / 2);
-  }
-  let startIndex = Math.max(0, playerIndex - Math.floor(displayCount / 2));
-  if (startIndex + displayCount > total) {
-    startIndex = total - displayCount;
-    if (startIndex < 0) startIndex = 0;
-  }
-  const displayResults = leaderboardResults.slice(startIndex, startIndex + displayCount);
-  // Aumentamos el ancho del canvas
-  const canvasWidth = 1024 * resolutionFactor; // <--- Cambiado de 512 a 1024
-  const canvasHeight = headerHeight + rowHeight * displayCount;
-  canvas.width = canvasWidth;
-  canvas.height = canvasHeight;
-  ctx.fillStyle = "rgba(0,0,0,0.7)";
-  ctx.fillRect(0, 0, canvasWidth, canvasHeight);
-  ctx.fillStyle = "#FFFFFF";
-  ctx.font = 'Bold ' + (28 * resolutionFactor) + 'px Arial';
-  ctx.textAlign = "center";
-  ctx.textBaseline = "middle";
-  ctx.fillText(`Tabla de Clasificación`, canvasWidth / 2, headerHeight / 2);
-  // Dibujar cabecera de columnas
-  const xPosPos   = 0.10 * canvasWidth;
-  const xPosName  = 0.40 * canvasWidth;
-  const xPosScore = 0.75 * canvasWidth;
-  let yPos = headerHeight;
-  ctx.font = 'Bold ' + (24 * resolutionFactor) + 'px Arial';
-  ctx.textAlign = "left";
-  ctx.fillText("Pos", xPosPos, yPos);
-  ctx.fillText("Nombre", xPosName, yPos);
-  ctx.fillText("Puntos", xPosScore, yPos);
-  yPos += rowHeight;
-  for (let i = 0; i < displayResults.length; i++) {
-    const data = displayResults[i];
-    const globalRank = startIndex + i + 1;
-    if (playerPosition !== null && globalRank === playerPosition) {
-      ctx.fillStyle = "green";
-      ctx.fillRect(0, yPos - rowHeight * 0.6, canvasWidth, rowHeight);
-      ctx.fillStyle = "#FFFFFF";
-    } else {
-      ctx.fillStyle = "#FFFFFF";
-    }
-    ctx.fillText(String(globalRank), xPosPos, yPos);
-    ctx.fillText(data.name, xPosName, yPos);
-    ctx.fillText(String(data.score), xPosScore, yPos);
-    yPos += rowHeight;
-  }
-  if (playerPosition !== null) {
-    ctx.textAlign = "center";
-    ctx.fillText(`Tu posición: ${playerPosition}`, canvasWidth / 2, yPos + rowHeight);
-  }
-  texture.needsUpdate = true;
-  const planeHeightNew = planeWidth * (canvasHeight / canvasWidth);
-  leaderboardMesh.geometry.dispose();
-  leaderboardMesh.geometry = new THREE.PlaneGeometry(planeWidth, planeHeightNew);
-  leaderboardMesh.position.set(0, 0, -1.2);
-  // El botón Reiniciar ya se posiciona en createLeaderboardMesh
-}
-
+        if (!leaderboardMesh) return;
+        const { canvas, ctx, texture, planeWidth } = leaderboardMesh.userData;
+        const headerHeight = 40 * resolutionFactor;
+        const rowHeight = 30 * resolutionFactor;
+        const total = leaderboardResults.length;
+        const displayCount = Math.min(10, total);
+        let playerIndex;
+        if (playerPosition !== null) {
+          playerIndex = playerPosition - 1;
+        } else {
+          playerIndex = Math.floor(displayCount / 2);
+        }
+        let startIndex = Math.max(0, playerIndex - Math.floor(displayCount / 2));
+        if (startIndex + displayCount > total) {
+          startIndex = total - displayCount;
+          if (startIndex < 0) startIndex = 0;
+        }
+        const displayResults = leaderboardResults.slice(startIndex, startIndex + displayCount);
+        const canvasWidth = 512 * resolutionFactor;
+        const canvasHeight = headerHeight + rowHeight * displayCount;
+        canvas.width = canvasWidth;
+        canvas.height = canvasHeight;
+        ctx.fillStyle = "rgba(0,0,0,0.7)";
+        ctx.fillRect(0, 0, canvasWidth, canvasHeight);
+        ctx.fillStyle = "#FFFFFF";
+        ctx.font = 'Bold ' + (28 * resolutionFactor) + 'px Arial';
+        ctx.textAlign = "center";
+        ctx.textBaseline = "middle";
+        ctx.fillText(`Tabla de Clasificación`, canvasWidth / 2, headerHeight / 2);
+        // Dibujar cabecera de columnas
+        const xPosPos   = 0.10 * canvasWidth;
+        const xPosName  = 0.40 * canvasWidth;
+        const xPosScore = 0.75 * canvasWidth;
+        let yPos = headerHeight;
+        ctx.font = 'Bold ' + (24 * resolutionFactor) + 'px Arial';
+        ctx.textAlign = "left";
+        ctx.fillText("Pos", xPosPos, yPos);
+        ctx.fillText("Nombre", xPosName, yPos);
+        ctx.fillText("Puntos", xPosScore, yPos);
+        yPos += rowHeight;
+        for (let i = 0; i < displayResults.length; i++) {
+          const data = displayResults[i];
+          const globalRank = startIndex + i + 1;
+          if (playerPosition !== null && globalRank === playerPosition) {
+            ctx.fillStyle = "green";
+            ctx.fillRect(0, yPos - rowHeight * 0.6, canvasWidth, rowHeight);
+            ctx.fillStyle = "#FFFFFF";
+          } else {
+            ctx.fillStyle = "#FFFFFF";
+          }
+          ctx.fillText(String(globalRank), xPosPos, yPos);
+          ctx.fillText(data.name, xPosName, yPos);
+          ctx.fillText(String(data.score), xPosScore, yPos);
+          yPos += rowHeight;
+        }
+        if (playerPosition !== null) {
+          ctx.textAlign = "center";
+          ctx.fillText(`Tu posición: ${playerPosition}`, canvasWidth / 2, yPos + rowHeight);
+        }
+        texture.needsUpdate = true;
+        const planeHeightNew = planeWidth * (canvasHeight / canvasWidth);
+        leaderboardMesh.geometry.dispose();
+        leaderboardMesh.geometry = new THREE.PlaneGeometry(planeWidth, planeHeightNew);
+        leaderboardMesh.position.set(0, 0, -1.2);
+        // Reposicionar el botón reiniciar a la izquierda (ya se hizo en createLeaderboardMesh)
+      }
 
       async function endGame() {
         gameOver = true;
